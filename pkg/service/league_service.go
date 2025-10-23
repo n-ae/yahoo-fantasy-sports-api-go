@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"yahoo-fantasy-sdk/internal/repository"
-	"yahoo-fantasy-sdk/internal/yahoo"
+	"github.com/n-ae/yahoo-fantasy-sports-api-go/pkg/repository"
+	"github.com/n-ae/yahoo-fantasy-sports-api-go/pkg/yahoo"
 )
 
 type LeagueService struct {
