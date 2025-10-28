@@ -485,3 +485,269 @@ func (c *APICache) CleanExpired() error {
 	_, err := c.db.Exec(query)
 	return err
 }
+
+func (c *Client) GetLeaguePlayers(ctx context.Context, leagueKey string, status PlayerStatus, start, count int) ([]Player, error) {
+	cacheKey := fmt.Sprintf("league:%s:players:%s:%d:%d", leagueKey, status, start, count)
+
+	if c.cacheEnabled {
+		if cached, err := c.cache.Get(cacheKey); err == nil {
+			var players []Player
+			if json.Unmarshal([]byte(cached), &players) == nil {
+				return players, nil
+			}
+		}
+	}
+
+	players, err := c.fetchLeaguePlayers(ctx, leagueKey, status, start, count)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.cacheEnabled {
+		c.cache.Set(cacheKey, players, 1*time.Hour)
+	}
+	return players, nil
+}
+
+func (c *Client) GetPlayerStats(ctx context.Context, leagueKey, playerKey string, weekNum int) (*Player, error) {
+	weekStr := "season"
+	if weekNum > 0 {
+		weekStr = fmt.Sprintf("week_%d", weekNum)
+	}
+	cacheKey := fmt.Sprintf("player:%s:stats:%s:%s", playerKey, leagueKey, weekStr)
+
+	if c.cacheEnabled {
+		if cached, err := c.cache.Get(cacheKey); err == nil {
+			var player Player
+			if json.Unmarshal([]byte(cached), &player) == nil {
+				return &player, nil
+			}
+		}
+	}
+
+	player, err := c.fetchPlayerStats(ctx, leagueKey, playerKey, weekNum)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.cacheEnabled {
+		c.cache.Set(cacheKey, player, 2*time.Hour)
+	}
+	return player, nil
+}
+
+func (c *Client) GetLeagueStandings(ctx context.Context, leagueKey string) (*Standings, error) {
+	cacheKey := fmt.Sprintf("league:%s:standings", leagueKey)
+
+	if c.cacheEnabled {
+		if cached, err := c.cache.Get(cacheKey); err == nil {
+			var standings Standings
+			if json.Unmarshal([]byte(cached), &standings) == nil {
+				return &standings, nil
+			}
+		}
+	}
+
+	standings, err := c.fetchStandings(ctx, leagueKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.cacheEnabled {
+		c.cache.Set(cacheKey, standings, 6*time.Hour)
+	}
+	return standings, nil
+}
+
+func (c *Client) GetLeagueMatchups(ctx context.Context, leagueKey string, weekNum int) ([]Matchup, error) {
+	cacheKey := fmt.Sprintf("league:%s:matchups:week_%d", leagueKey, weekNum)
+
+	if c.cacheEnabled {
+		if cached, err := c.cache.Get(cacheKey); err == nil {
+			var matchups []Matchup
+			if json.Unmarshal([]byte(cached), &matchups) == nil {
+				return matchups, nil
+			}
+		}
+	}
+
+	matchups, err := c.fetchMatchups(ctx, leagueKey, weekNum)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.cacheEnabled {
+		c.cache.Set(cacheKey, matchups, 1*time.Hour)
+	}
+	return matchups, nil
+}
+
+func (c *Client) GetLeagueDraftResults(ctx context.Context, leagueKey string) ([]DraftResult, error) {
+	cacheKey := fmt.Sprintf("league:%s:draft_results", leagueKey)
+
+	if c.cacheEnabled {
+		if cached, err := c.cache.Get(cacheKey); err == nil {
+			var results []DraftResult
+			if json.Unmarshal([]byte(cached), &results) == nil {
+				return results, nil
+			}
+		}
+	}
+
+	results, err := c.fetchDraftResults(ctx, leagueKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.cacheEnabled {
+		c.cache.Set(cacheKey, results, 24*time.Hour)
+	}
+	return results, nil
+}
+
+func (c *Client) GetLeagueTransactions(ctx context.Context, leagueKey string) ([]Transaction, error) {
+	cacheKey := fmt.Sprintf("league:%s:transactions", leagueKey)
+
+	if c.cacheEnabled {
+		if cached, err := c.cache.Get(cacheKey); err == nil {
+			var transactions []Transaction
+			if json.Unmarshal([]byte(cached), &transactions) == nil {
+				return transactions, nil
+			}
+		}
+	}
+
+	transactions, err := c.fetchTransactions(ctx, leagueKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.cacheEnabled {
+		c.cache.Set(cacheKey, transactions, 30*time.Minute)
+	}
+	return transactions, nil
+}
+
+func (c *Client) fetchLeaguePlayers(ctx context.Context, leagueKey string, status PlayerStatus, start, count int) ([]Player, error) {
+	statusParam := ""
+	if status != "" {
+		statusParam = fmt.Sprintf(";status=%s", status)
+	}
+	endpoint := fmt.Sprintf("league/%s/players%s;start=%d;count=%d", leagueKey, statusParam, start, count)
+	data, err := c.makeRequest(ctx, endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp yahooPlayerResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("failed to parse players response: %w", err)
+	}
+
+	var players []Player
+	for _, item := range resp.FantasyContent.League.Players {
+		players = append(players, convertYahooPlayerToPlayer(item.Player))
+	}
+
+	return players, nil
+}
+
+func (c *Client) fetchPlayerStats(ctx context.Context, leagueKey, playerKey string, weekNum int) (*Player, error) {
+	statsParam := ""
+	if weekNum > 0 {
+		statsParam = fmt.Sprintf(";type=week;week=%d", weekNum)
+	}
+	endpoint := fmt.Sprintf("league/%s/players;player_keys=%s/stats%s", leagueKey, playerKey, statsParam)
+	data, err := c.makeRequest(ctx, endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp yahooSinglePlayerResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("failed to parse player stats response: %w", err)
+	}
+
+	player := convertYahooPlayerToPlayer(resp.FantasyContent.League.Players.Player)
+	return &player, nil
+}
+
+func (c *Client) fetchStandings(ctx context.Context, leagueKey string) (*Standings, error) {
+	endpoint := fmt.Sprintf("league/%s/standings", leagueKey)
+	data, err := c.makeRequest(ctx, endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp yahooStandingsResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("failed to parse standings response: %w", err)
+	}
+
+	var teams []StandingsTeam
+	for _, item := range resp.FantasyContent.League.Standings.Teams {
+		teams = append(teams, convertYahooStandingsTeam(item.Team))
+	}
+
+	return &Standings{Teams: teams}, nil
+}
+
+func (c *Client) fetchMatchups(ctx context.Context, leagueKey string, weekNum int) ([]Matchup, error) {
+	endpoint := fmt.Sprintf("league/%s/scoreboard;week=%d", leagueKey, weekNum)
+	data, err := c.makeRequest(ctx, endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp yahooScoreboardResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("failed to parse scoreboard response: %w", err)
+	}
+
+	var matchups []Matchup
+	for _, item := range resp.FantasyContent.League.Scoreboard.Matchups {
+		matchups = append(matchups, convertYahooMatchup(item.Matchup))
+	}
+
+	return matchups, nil
+}
+
+func (c *Client) fetchDraftResults(ctx context.Context, leagueKey string) ([]DraftResult, error) {
+	endpoint := fmt.Sprintf("league/%s/draftresults", leagueKey)
+	data, err := c.makeRequest(ctx, endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp yahooDraftResultsResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("failed to parse draft results response: %w", err)
+	}
+
+	var results []DraftResult
+	for _, item := range resp.FantasyContent.League.DraftResults {
+		results = append(results, convertYahooDraftResult(item.DraftResult))
+	}
+
+	return results, nil
+}
+
+func (c *Client) fetchTransactions(ctx context.Context, leagueKey string) ([]Transaction, error) {
+	endpoint := fmt.Sprintf("league/%s/transactions", leagueKey)
+	data, err := c.makeRequest(ctx, endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp yahooTransactionsResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("failed to parse transactions response: %w", err)
+	}
+
+	var transactions []Transaction
+	for _, item := range resp.FantasyContent.League.Transactions {
+		transactions = append(transactions, convertYahooTransaction(item.Transaction))
+	}
+
+	return transactions, nil
+}
