@@ -378,6 +378,105 @@ if err != nil {
 
 The SDK automatically handles token refresh when the access token expires.
 
+## Working with Player Stats
+
+### Getting Specific Stats (e.g., 3-Point Attempts)
+
+Yahoo uses Stat IDs to identify different statistics. Here are three ways to access them:
+
+#### Method 1: Using the Stats Helper (Recommended for NBA)
+
+```go
+player, err := client.GetPlayerStats(ctx, leagueKey, playerKey, 0) // 0 = season stats
+
+if player.PlayerStats != nil {
+    nbaStats, err := yahoo.ParseNBAStats(player.PlayerStats.Stats)
+    if err == nil {
+        fmt.Printf("3-Point Attempts: %d\n", nbaStats.ThreePointsAttempt)
+        fmt.Printf("3-Pointers Made: %d\n", nbaStats.ThreePointsMade)
+        fmt.Printf("3-Point %%: %.1f%%\n", nbaStats.ThreePPercent * 100)
+    }
+}
+```
+
+#### Method 2: Direct Stat ID Access
+
+```go
+player, err := client.GetPlayerStats(ctx, leagueKey, playerKey, 0)
+
+if player.PlayerStats != nil {
+    helper := yahoo.NewStatHelper(player.PlayerStats.Stats)
+
+    // Get as string
+    if threePA, ok := helper.GetByID(yahoo.StatID3PA); ok {
+        fmt.Printf("3PA: %s\n", threePA)
+    }
+
+    // Get as int
+    if threePA, err := helper.GetIntByID(yahoo.StatID3PA); err == nil {
+        fmt.Printf("3PA: %d\n", threePA)
+    }
+}
+```
+
+#### Method 3: Manual Loop Through Stats
+
+```go
+player, err := client.GetPlayerStats(ctx, leagueKey, playerKey, 0)
+
+if player.PlayerStats != nil {
+    for _, stat := range player.PlayerStats.Stats {
+        if stat.StatID == 13 { // 13 = 3PA in most NBA leagues
+            fmt.Printf("3-Point Attempts: %s\n", stat.Value)
+        }
+    }
+}
+```
+
+### Common NBA Stat IDs
+
+```go
+const (
+    StatIDGamesPlayed       = 0   // GP
+    StatIDFGM               = 5   // Field Goals Made
+    StatIDFGA               = 6   // Field Goals Attempted
+    StatIDFGPercent         = 7   // Field Goal %
+    StatIDFTM               = 8   // Free Throws Made
+    StatIDFTA               = 9   // Free Throws Attempted
+    StatIDFTPercent         = 10  // Free Throw %
+    StatID3PM               = 12  // 3-Pointers Made
+    StatID3PA               = 13  // 3-Pointers Attempted
+    StatID3PPercent         = 14  // 3-Point %
+    StatIDPoints            = 15  // Points
+    StatIDRebounds          = 16  // Total Rebounds
+    StatIDOffensiveRebounds = 17  // Offensive Rebounds
+    StatIDAssists           = 18  // Assists
+    StatIDSteals            = 19  // Steals
+    StatIDBlocks            = 20  // Blocks
+    StatIDTurnovers         = 21  // Turnovers
+)
+```
+
+**Note:** Stat IDs may vary if your league has custom scoring settings. To find your league's stat IDs:
+
+```bash
+go run examples/get_player_stats.go <league_key> <player_key> 0
+```
+
+### Weekly vs Season Stats
+
+```go
+// Get season stats
+seasonStats, _ := client.GetPlayerStats(ctx, leagueKey, playerKey, 0)
+
+// Get week 5 stats
+weekStats, _ := client.GetPlayerStats(ctx, leagueKey, playerKey, 5)
+```
+
+### Complete Example
+
+See `examples/get_3pa_data.go` for a complete example of retrieving and working with 3-point attempt data.
+
 ## Testing
 
 Run the test suite:
