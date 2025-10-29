@@ -231,6 +231,129 @@ func TestStatHelperGetShootingStatsMissing(t *testing.T) {
 	}
 }
 
+func TestParseCompoundStat(t *testing.T) {
+	stats := []Stat{
+		{StatID: StatIDFGM, Value: "7/15"},  // Compound FGM/FGA
+		{StatID: StatIDFTM, Value: "4/5"},   // Compound FTM/FTA
+		{StatID: StatID3PM, Value: "2/8"},   // Compound 3PM/3PA
+	}
+
+	helper := NewStatHelper(stats)
+
+	// Test FGM/FGA parsing
+	fgm, fga, err := helper.parseCompoundStat(StatIDFGM)
+	if err != nil {
+		t.Errorf("parseCompoundStat(FGM) failed: %v", err)
+	}
+	if fgm != 7 || fga != 15 {
+		t.Errorf("FG compound stat: got FGM=%d, FGA=%d, want 7, 15", fgm, fga)
+	}
+
+	// Test FTM/FTA parsing
+	ftm, fta, err := helper.parseCompoundStat(StatIDFTM)
+	if err != nil {
+		t.Errorf("parseCompoundStat(FTM) failed: %v", err)
+	}
+	if ftm != 4 || fta != 5 {
+		t.Errorf("FT compound stat: got FTM=%d, FTA=%d, want 4, 5", ftm, fta)
+	}
+
+	// Test 3PM/3PA parsing
+	tpm, tpa, err := helper.parseCompoundStat(StatID3PM)
+	if err != nil {
+		t.Errorf("parseCompoundStat(3PM) failed: %v", err)
+	}
+	if tpm != 2 || tpa != 8 {
+		t.Errorf("3P compound stat: got 3PM=%d, 3PA=%d, want 2, 8", tpm, tpa)
+	}
+}
+
+func TestGetFGMFGA(t *testing.T) {
+	// Test with compound stats
+	stats := []Stat{
+		{StatID: StatIDFGM, Value: "7/15"},
+	}
+
+	helper := NewStatHelper(stats)
+	fgm, fga, err := helper.GetFGMFGA()
+
+	if err != nil {
+		t.Errorf("GetFGMFGA() failed: %v", err)
+	}
+	if fgm != 7 || fga != 15 {
+		t.Errorf("GetFGMFGA() = (%d, %d), want (7, 15)", fgm, fga)
+	}
+}
+
+func TestGetFTMFTA(t *testing.T) {
+	// Test with compound stats
+	stats := []Stat{
+		{StatID: StatIDFTM, Value: "4/5"},
+	}
+
+	helper := NewStatHelper(stats)
+	ftm, fta, err := helper.GetFTMFTA()
+
+	if err != nil {
+		t.Errorf("GetFTMFTA() failed: %v", err)
+	}
+	if ftm != 4 || fta != 5 {
+		t.Errorf("GetFTMFTA() = (%d, %d), want (4, 5)", ftm, fta)
+	}
+}
+
+func TestGet3PM3PA(t *testing.T) {
+	// Test with compound stats
+	stats := []Stat{
+		{StatID: StatID3PM, Value: "2/8"},
+	}
+
+	helper := NewStatHelper(stats)
+	tpm, tpa, err := helper.Get3PM3PA()
+
+	if err != nil {
+		t.Errorf("Get3PM3PA() failed: %v", err)
+	}
+	if tpm != 2 || tpa != 8 {
+		t.Errorf("Get3PM3PA() = (%d, %d), want (2, 8)", tpm, tpa)
+	}
+}
+
+func TestParseNBAStatsWithCompoundStats(t *testing.T) {
+	// Test with compound stats instead of individual stat IDs
+	stats := []Stat{
+		{StatID: StatIDFGM, Value: "10/20"},  // Compound FGM/FGA
+		{StatID: StatIDFTM, Value: "8/10"},   // Compound FTM/FTA
+		{StatID: StatID3PM, Value: "3/9"},    // Compound 3PM/3PA
+		{StatID: StatIDPoints, Value: "31"},
+		{StatID: StatIDGamesPlayed, Value: "1"},
+	}
+
+	nbaStats, err := ParseNBAStats(stats)
+	if err != nil {
+		t.Fatalf("ParseNBAStats failed: %v", err)
+	}
+
+	if nbaStats.FGM != 10 {
+		t.Errorf("FGM = %d, want 10", nbaStats.FGM)
+	}
+	if nbaStats.FGA != 20 {
+		t.Errorf("FGA = %d, want 20", nbaStats.FGA)
+	}
+	if nbaStats.FTM != 8 {
+		t.Errorf("FTM = %d, want 8", nbaStats.FTM)
+	}
+	if nbaStats.FTA != 10 {
+		t.Errorf("FTA = %d, want 10", nbaStats.FTA)
+	}
+	if nbaStats.ThreePointsMade != 3 {
+		t.Errorf("3PM = %d, want 3", nbaStats.ThreePointsMade)
+	}
+	if nbaStats.ThreePointsAttempt != 9 {
+		t.Errorf("3PA = %d, want 9", nbaStats.ThreePointsAttempt)
+	}
+}
+
 func TestStatHelperGetIntByID(t *testing.T) {
 	stats := []Stat{
 		{StatID: StatIDFGM, Value: "10"},

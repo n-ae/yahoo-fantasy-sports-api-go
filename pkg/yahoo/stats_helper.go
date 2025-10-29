@@ -42,28 +42,166 @@ func (sh *StatHelper) GetAll() []Stat {
 	return sh.stats
 }
 
-func (sh *StatHelper) GetShootingStats() (fgm, fga, ftm, fta, tpm, tpa int, err error) {
+// GetFGMFGA attempts to get field goal made/attempted, with fallback to compound stat parsing
+func (sh *StatHelper) GetFGMFGA() (fgm, fga int, err error) {
 	fgm, err = sh.GetIntByID(StatIDFGM)
 	if err != nil {
-		return
+		if compoundFGM, compoundFGA, parseErr := sh.parseCompoundStat(StatIDFGM); parseErr == nil {
+			return compoundFGM, compoundFGA, nil
+		}
+		return 0, 0, err
 	}
 	fga, err = sh.GetIntByID(StatIDFGA)
 	if err != nil {
-		return
+		if _, compoundFGA, parseErr := sh.parseCompoundStat(StatIDFGM); parseErr == nil {
+			return fgm, compoundFGA, nil
+		}
+		return fgm, 0, err
 	}
+	return fgm, fga, nil
+}
+
+// GetFTMFTA attempts to get free throw made/attempted, with fallback to compound stat parsing
+func (sh *StatHelper) GetFTMFTA() (ftm, fta int, err error) {
 	ftm, err = sh.GetIntByID(StatIDFTM)
 	if err != nil {
-		return
+		if compoundFTM, compoundFTA, parseErr := sh.parseCompoundStat(StatIDFTM); parseErr == nil {
+			return compoundFTM, compoundFTA, nil
+		}
+		return 0, 0, err
 	}
 	fta, err = sh.GetIntByID(StatIDFTA)
 	if err != nil {
-		return
+		if _, compoundFTA, parseErr := sh.parseCompoundStat(StatIDFTM); parseErr == nil {
+			return ftm, compoundFTA, nil
+		}
+		return ftm, 0, err
+	}
+	return ftm, fta, nil
+}
+
+// Get3PM3PA attempts to get 3-pointers made/attempted, with fallback to compound stat parsing
+func (sh *StatHelper) Get3PM3PA() (tpm, tpa int, err error) {
+	tpm, err = sh.GetIntByID(StatID3PM)
+	if err != nil {
+		if compoundTPM, compoundTPA, parseErr := sh.parseCompoundStat(StatID3PM); parseErr == nil {
+			return compoundTPM, compoundTPA, nil
+		}
+		return 0, 0, err
+	}
+	tpa, err = sh.GetIntByID(StatID3PA)
+	if err != nil {
+		if _, compoundTPA, parseErr := sh.parseCompoundStat(StatID3PM); parseErr == nil {
+			return tpm, compoundTPA, nil
+		}
+		// 3PA is optional, return with tpm and 0 for tpa
+		return tpm, 0, nil
+	}
+	return tpm, tpa, nil
+}
+
+// parseCompoundStat attempts to parse a compound stat value like "7/15" into made/attempted
+// This is a fallback for when the stat ID returns a compound value instead of individual stats
+func (sh *StatHelper) parseCompoundStat(statID int) (made int, attempted int, err error) {
+	value, ok := sh.GetByID(statID)
+	if !ok {
+		return 0, 0, fmt.Errorf("stat ID %d not found", statID)
+	}
+	
+	// Parse compound format "made/attempted"
+	parts := []rune(value)
+	var madeStr, attemptedStr string
+	slashFound := false
+	
+	for _, ch := range parts {
+		if ch == '/' {
+			slashFound = true
+			continue
+		}
+		if !slashFound {
+			madeStr += string(ch)
+		} else {
+			attemptedStr += string(ch)
+		}
+	}
+	
+	if !slashFound || madeStr == "" || attemptedStr == "" {
+		return 0, 0, fmt.Errorf("invalid compound stat format: %s", value)
+	}
+	
+	made, err = strconv.Atoi(madeStr)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to parse made value: %w", err)
+	}
+	
+	attempted, err = strconv.Atoi(attemptedStr)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to parse attempted value: %w", err)
+	}
+	
+	return made, attempted, nil
+}
+
+func (sh *StatHelper) GetShootingStats() (fgm, fga, ftm, fta, tpm, tpa int, err error) {
+	fgm, err = sh.GetIntByID(StatIDFGM)
+	if err != nil {
+		// Fallback: try parsing from compound stat
+		if compoundFGM, _, parseErr := sh.parseCompoundStat(StatIDFGM); parseErr == nil {
+			fgm = compoundFGM
+		} else {
+			return
+		}
+	}
+	fga, err = sh.GetIntByID(StatIDFGA)
+	if err != nil {
+		// Fallback: try parsing from compound stat
+		if _, compoundFGA, parseErr := sh.parseCompoundStat(StatIDFGM); parseErr == nil {
+			fga = compoundFGA
+			err = nil
+		} else {
+			return
+		}
+	}
+	ftm, err = sh.GetIntByID(StatIDFTM)
+	if err != nil {
+		// Fallback: try parsing from compound stat
+		if compoundFTM, _, parseErr := sh.parseCompoundStat(StatIDFTM); parseErr == nil {
+			ftm = compoundFTM
+			err = nil
+		} else {
+			return
+		}
+	}
+	fta, err = sh.GetIntByID(StatIDFTA)
+	if err != nil {
+		// Fallback: try parsing from compound stat
+		if _, compoundFTA, parseErr := sh.parseCompoundStat(StatIDFTM); parseErr == nil {
+			fta = compoundFTA
+			err = nil
+		} else {
+			return
+		}
 	}
 	tpm, err = sh.GetIntByID(StatID3PM)
 	if err != nil {
-		return
+		// Fallback: try parsing from compound stat
+		if compound3PM, _, parseErr := sh.parseCompoundStat(StatID3PM); parseErr == nil {
+			tpm = compound3PM
+			err = nil
+		} else {
+			return
+		}
 	}
 	tpa, err = sh.GetIntByID(StatID3PA)
+	if err != nil {
+		// Fallback: try parsing from compound stat
+		if _, compound3PA, parseErr := sh.parseCompoundStat(StatID3PM); parseErr == nil {
+			tpa = compound3PA
+			err = nil
+		} else {
+			err = nil // 3PA is optional
+		}
+	}
 	return
 }
 
@@ -121,27 +259,42 @@ func ParseNBAStats(stats []Stat) (*NBAStats, error) {
 	}
 	if val, err := sh.GetIntByID(StatIDFGM); err == nil {
 		nbaStats.FGM = val
+	} else if fgm, fga, err := sh.parseCompoundStat(StatIDFGM); err == nil {
+		nbaStats.FGM = fgm
+		nbaStats.FGA = fga
 	}
 	if val, err := sh.GetIntByID(StatIDFGA); err == nil {
 		nbaStats.FGA = val
+	} else if _, fga, err := sh.parseCompoundStat(StatIDFGM); err == nil && nbaStats.FGA == 0 {
+		nbaStats.FGA = fga
 	}
 	if val, err := sh.GetFloatByID(StatIDFGPercent); err == nil {
 		nbaStats.FGPercent = val
 	}
 	if val, err := sh.GetIntByID(StatIDFTM); err == nil {
 		nbaStats.FTM = val
+	} else if ftm, fta, err := sh.parseCompoundStat(StatIDFTM); err == nil {
+		nbaStats.FTM = ftm
+		nbaStats.FTA = fta
 	}
 	if val, err := sh.GetIntByID(StatIDFTA); err == nil {
 		nbaStats.FTA = val
+	} else if _, fta, err := sh.parseCompoundStat(StatIDFTM); err == nil && nbaStats.FTA == 0 {
+		nbaStats.FTA = fta
 	}
 	if val, err := sh.GetFloatByID(StatIDFTPercent); err == nil {
 		nbaStats.FTPercent = val
 	}
 	if val, err := sh.GetIntByID(StatID3PM); err == nil {
 		nbaStats.ThreePointsMade = val
+	} else if tpm, tpa, err := sh.parseCompoundStat(StatID3PM); err == nil {
+		nbaStats.ThreePointsMade = tpm
+		nbaStats.ThreePointsAttempt = tpa
 	}
 	if val, err := sh.GetIntByID(StatID3PA); err == nil {
 		nbaStats.ThreePointsAttempt = val
+	} else if _, tpa, err := sh.parseCompoundStat(StatID3PM); err == nil && nbaStats.ThreePointsAttempt == 0 {
+		nbaStats.ThreePointsAttempt = tpa
 	}
 	if val, err := sh.GetFloatByID(StatID3PPercent); err == nil {
 		nbaStats.ThreePPercent = val
