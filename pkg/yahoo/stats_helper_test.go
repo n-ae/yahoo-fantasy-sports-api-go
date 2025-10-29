@@ -319,6 +319,40 @@ func TestGet3PM3PA(t *testing.T) {
 	}
 }
 
+func TestGetFGMFGAAlternateCompoundID(t *testing.T) {
+	// Test with alternate compound stat ID 9004003
+	stats := []Stat{
+		{StatID: StatIDFGMFGACompound, Value: "93/180"},
+	}
+
+	helper := NewStatHelper(stats)
+	fgm, fga, err := helper.GetFGMFGA()
+
+	if err != nil {
+		t.Errorf("GetFGMFGA() failed: %v", err)
+	}
+	if fgm != 93 || fga != 180 {
+		t.Errorf("GetFGMFGA() = (%d, %d), want (93, 180)", fgm, fga)
+	}
+}
+
+func TestGetFTMFTAAlternateCompoundID(t *testing.T) {
+	// Test with alternate compound stat ID 9007006
+	stats := []Stat{
+		{StatID: StatIDFTMFTACompound, Value: "71/83"},
+	}
+
+	helper := NewStatHelper(stats)
+	ftm, fta, err := helper.GetFTMFTA()
+
+	if err != nil {
+		t.Errorf("GetFTMFTA() failed: %v", err)
+	}
+	if ftm != 71 || fta != 83 {
+		t.Errorf("GetFTMFTA() = (%d, %d), want (71, 83)", ftm, fta)
+	}
+}
+
 func TestParseNBAStatsWithCompoundStats(t *testing.T) {
 	// Test with compound stats instead of individual stat IDs
 	stats := []Stat{

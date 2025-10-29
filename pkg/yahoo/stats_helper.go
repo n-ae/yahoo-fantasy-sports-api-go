@@ -46,7 +46,12 @@ func (sh *StatHelper) GetAll() []Stat {
 func (sh *StatHelper) GetFGMFGA() (fgm, fga int, err error) {
 	fgm, err = sh.GetIntByID(StatIDFGM)
 	if err != nil {
+		// Try parsing from regular stat ID with compound value
 		if compoundFGM, compoundFGA, parseErr := sh.parseCompoundStat(StatIDFGM); parseErr == nil {
+			return compoundFGM, compoundFGA, nil
+		}
+		// Try alternate compound stat ID
+		if compoundFGM, compoundFGA, parseErr := sh.parseCompoundStat(StatIDFGMFGACompound); parseErr == nil {
 			return compoundFGM, compoundFGA, nil
 		}
 		return 0, 0, err
@@ -54,6 +59,9 @@ func (sh *StatHelper) GetFGMFGA() (fgm, fga int, err error) {
 	fga, err = sh.GetIntByID(StatIDFGA)
 	if err != nil {
 		if _, compoundFGA, parseErr := sh.parseCompoundStat(StatIDFGM); parseErr == nil {
+			return fgm, compoundFGA, nil
+		}
+		if _, compoundFGA, parseErr := sh.parseCompoundStat(StatIDFGMFGACompound); parseErr == nil {
 			return fgm, compoundFGA, nil
 		}
 		return fgm, 0, err
@@ -65,7 +73,12 @@ func (sh *StatHelper) GetFGMFGA() (fgm, fga int, err error) {
 func (sh *StatHelper) GetFTMFTA() (ftm, fta int, err error) {
 	ftm, err = sh.GetIntByID(StatIDFTM)
 	if err != nil {
+		// Try parsing from regular stat ID with compound value
 		if compoundFTM, compoundFTA, parseErr := sh.parseCompoundStat(StatIDFTM); parseErr == nil {
+			return compoundFTM, compoundFTA, nil
+		}
+		// Try alternate compound stat ID
+		if compoundFTM, compoundFTA, parseErr := sh.parseCompoundStat(StatIDFTMFTACompound); parseErr == nil {
 			return compoundFTM, compoundFTA, nil
 		}
 		return 0, 0, err
@@ -73,6 +86,9 @@ func (sh *StatHelper) GetFTMFTA() (ftm, fta int, err error) {
 	fta, err = sh.GetIntByID(StatIDFTA)
 	if err != nil {
 		if _, compoundFTA, parseErr := sh.parseCompoundStat(StatIDFTM); parseErr == nil {
+			return ftm, compoundFTA, nil
+		}
+		if _, compoundFTA, parseErr := sh.parseCompoundStat(StatIDFTMFTACompound); parseErr == nil {
 			return ftm, compoundFTA, nil
 		}
 		return ftm, 0, err
@@ -84,7 +100,12 @@ func (sh *StatHelper) GetFTMFTA() (ftm, fta int, err error) {
 func (sh *StatHelper) Get3PM3PA() (tpm, tpa int, err error) {
 	tpm, err = sh.GetIntByID(StatID3PM)
 	if err != nil {
+		// Try parsing from regular stat ID with compound value
 		if compoundTPM, compoundTPA, parseErr := sh.parseCompoundStat(StatID3PM); parseErr == nil {
+			return compoundTPM, compoundTPA, nil
+		}
+		// Try alternate compound stat ID
+		if compoundTPM, compoundTPA, parseErr := sh.parseCompoundStat(StatID3PM3PACompound); parseErr == nil {
 			return compoundTPM, compoundTPA, nil
 		}
 		return 0, 0, err
@@ -92,6 +113,9 @@ func (sh *StatHelper) Get3PM3PA() (tpm, tpa int, err error) {
 	tpa, err = sh.GetIntByID(StatID3PA)
 	if err != nil {
 		if _, compoundTPA, parseErr := sh.parseCompoundStat(StatID3PM); parseErr == nil {
+			return tpm, compoundTPA, nil
+		}
+		if _, compoundTPA, parseErr := sh.parseCompoundStat(StatID3PM3PACompound); parseErr == nil {
 			return tpm, compoundTPA, nil
 		}
 		// 3PA is optional, return with tpm and 0 for tpa
@@ -228,6 +252,11 @@ const (
 	StatIDTurnovers         = 19
 	StatIDAssistTurnoverRatio = 20
 	StatIDPersonalFouls     = 21
+	
+	// Alternate compound stat IDs (some leagues return these)
+	StatIDFGMFGACompound = 9004003  // FGM/FGA as compound "made/attempted"
+	StatIDFTMFTACompound = 9007006  // FTM/FTA as compound "made/attempted"
+	StatID3PM3PACompound = 9010009  // 3PM/3PA as compound "made/attempted"
 )
 
 type NBAStats struct {
