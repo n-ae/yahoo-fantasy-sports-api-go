@@ -8,12 +8,12 @@ All six core NBA shooting statistics are fully supported with three complementar
 
 | Stat | Full Name | Stat ID | Type |
 |------|-----------|---------|------|
-| **FGM** | Field Goals Made | 5 | int |
-| **FGA** | Field Goals Attempted | 6 | int |
-| **FTM** | Free Throws Made | 8 | int |
-| **FTA** | Free Throws Attempted | 9 | int |
-| **3PM** | 3-Pointers Made | 12 | int |
-| **3PA** | 3-Point Attempts | 13 | int |
+| **FGM** | Field Goals Made | 4 | int |
+| **FGA** | Field Goals Attempted | 3 | int |
+| **FTM** | Free Throws Made | 7 | int |
+| **FTA** | Free Throws Attempted | 6 | int |
+| **3PM** | 3-Pointers Made | 10 | int |
+| **3PA** | 3-Point Attempts | 9 | int |
 
 ### Three Ways to Access
 
@@ -51,12 +51,12 @@ fmt.Printf("3P:  %d/%d (%.1f%%)\n",
 helper := yahoo.NewStatHelper(player.PlayerStats.Stats)
 
 // Individual stat access
-fgm, _ := helper.GetIntByID(yahoo.StatIDFGM)  // 5
-fga, _ := helper.GetIntByID(yahoo.StatIDFGA)  // 6
-ftm, _ := helper.GetIntByID(yahoo.StatIDFTM)  // 8
-fta, _ := helper.GetIntByID(yahoo.StatIDFTA)  // 9
-tpm, _ := helper.GetIntByID(yahoo.StatID3PM)  // 12
-tpa, _ := helper.GetIntByID(yahoo.StatID3PA)  // 13
+fgm, _ := helper.GetIntByID(yahoo.StatIDFGM)  // 4
+fga, _ := helper.GetIntByID(yahoo.StatIDFGA)  // 3
+ftm, _ := helper.GetIntByID(yahoo.StatIDFTM)  // 7
+fta, _ := helper.GetIntByID(yahoo.StatIDFTA)  // 6
+tpm, _ := helper.GetIntByID(yahoo.StatID3PM)  // 10
+tpa, _ := helper.GetIntByID(yahoo.StatID3PA)  // 9
 
 // Or bulk access
 fgm, fga, ftm, fta, tpm, tpa, _ := helper.GetShootingStats()
@@ -78,17 +78,17 @@ var fgm, fga, ftm, fta, tpm, tpa int
 
 for _, stat := range player.PlayerStats.Stats {
     switch stat.StatID {
-    case 5:  // FGM
+    case 4:  // FGM
         fmt.Sscanf(stat.Value, "%d", &fgm)
-    case 6:  // FGA
+    case 3:  // FGA
         fmt.Sscanf(stat.Value, "%d", &fga)
-    case 8:  // FTM
+    case 7:  // FTM
         fmt.Sscanf(stat.Value, "%d", &ftm)
-    case 9:  // FTA
+    case 6:  // FTA
         fmt.Sscanf(stat.Value, "%d", &fta)
-    case 12: // 3PM
+    case 10: // 3PM
         fmt.Sscanf(stat.Value, "%d", &tpm)
-    case 13: // 3PA
+    case 9:  // 3PA
         fmt.Sscanf(stat.Value, "%d", &tpa)
     }
 }
@@ -249,4 +249,6 @@ Are you using a standard Yahoo league?
 
 ---
 
-**All six stats (FGM, FGA, FTM, FTA, 3PM, 3PA) are fully supported with complete type safety and automatic calculations.**
+**Stat ID Summary**: FGA=3, FGM=4, FTA=6, FTM=7, 3PA=9, 3PM=10
+
+All six stats (FGM, FGA, FTM, FTA, 3PM, 3PA) are fully supported with complete type safety and automatic calculations.

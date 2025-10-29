@@ -69,22 +69,27 @@ func (sh *StatHelper) GetShootingStats() (fgm, fga, ftm, fta, tpm, tpa int, err 
 
 const (
 	StatIDGamesPlayed       = 0
-	StatIDFGM               = 5
-	StatIDFGA               = 6
-	StatIDFGPercent         = 7
-	StatIDFTM               = 8
-	StatIDFTA               = 9
-	StatIDFTPercent         = 10
-	StatID3PM               = 12
-	StatID3PA               = 13
-	StatID3PPercent         = 14
-	StatIDPoints            = 15
-	StatIDRebounds          = 16
-	StatIDOffensiveRebounds = 17
-	StatIDAssists           = 18
-	StatIDSteals            = 19
-	StatIDBlocks            = 20
-	StatIDTurnovers         = 21
+	StatIDGamesStarted      = 1
+	StatIDMinutesPlayed     = 2
+	StatIDFGA               = 3
+	StatIDFGM               = 4
+	StatIDFGPercent         = 5
+	StatIDFTA               = 6
+	StatIDFTM               = 7
+	StatIDFTPercent         = 8
+	StatID3PA               = 9
+	StatID3PM               = 10
+	StatID3PPercent         = 11
+	StatIDPoints            = 12
+	StatIDOffensiveRebounds = 13
+	StatIDDefensiveRebounds = 14
+	StatIDRebounds          = 15
+	StatIDAssists           = 16
+	StatIDSteals            = 17
+	StatIDBlocks            = 18
+	StatIDTurnovers         = 19
+	StatIDAssistTurnoverRatio = 20
+	StatIDPersonalFouls     = 21
 )
 
 type NBAStats struct {
@@ -161,6 +166,16 @@ func ParseNBAStats(stats []Stat) (*NBAStats, error) {
 	}
 	if val, err := sh.GetIntByID(StatIDTurnovers); err == nil {
 		nbaStats.Turnovers = val
+	}
+
+	if nbaStats.FGPercent == 0 && nbaStats.FGA > 0 {
+		nbaStats.FGPercent = nbaStats.CalculateFGPercent()
+	}
+	if nbaStats.FTPercent == 0 && nbaStats.FTA > 0 {
+		nbaStats.FTPercent = nbaStats.CalculateFTPercent()
+	}
+	if nbaStats.ThreePPercent == 0 && nbaStats.ThreePointsAttempt > 0 {
+		nbaStats.ThreePPercent = nbaStats.Calculate3PPercent()
 	}
 
 	return nbaStats, nil

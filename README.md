@@ -426,7 +426,7 @@ player, err := client.GetPlayerStats(ctx, leagueKey, playerKey, 0)
 
 if player.PlayerStats != nil {
     for _, stat := range player.PlayerStats.Stats {
-        if stat.StatID == 13 { // 13 = 3PA in most NBA leagues
+        if stat.StatID == 9 { // 9 = 3PA in NBA leagues
             fmt.Printf("3-Point Attempts: %s\n", stat.Value)
         }
     }
@@ -438,22 +438,27 @@ if player.PlayerStats != nil {
 ```go
 const (
     StatIDGamesPlayed       = 0   // GP
-    StatIDFGM               = 5   // Field Goals Made
-    StatIDFGA               = 6   // Field Goals Attempted
-    StatIDFGPercent         = 7   // Field Goal %
-    StatIDFTM               = 8   // Free Throws Made
-    StatIDFTA               = 9   // Free Throws Attempted
-    StatIDFTPercent         = 10  // Free Throw %
-    StatID3PM               = 12  // 3-Pointers Made
-    StatID3PA               = 13  // 3-Pointers Attempted
-    StatID3PPercent         = 14  // 3-Point %
-    StatIDPoints            = 15  // Points
-    StatIDRebounds          = 16  // Total Rebounds
-    StatIDOffensiveRebounds = 17  // Offensive Rebounds
-    StatIDAssists           = 18  // Assists
-    StatIDSteals            = 19  // Steals
-    StatIDBlocks            = 20  // Blocks
-    StatIDTurnovers         = 21  // Turnovers
+    StatIDGamesStarted      = 1   // GS
+    StatIDMinutesPlayed     = 2   // MIN
+    StatIDFGA               = 3   // Field Goals Attempted
+    StatIDFGM               = 4   // Field Goals Made
+    StatIDFGPercent         = 5   // Field Goal %
+    StatIDFTA               = 6   // Free Throws Attempted
+    StatIDFTM               = 7   // Free Throws Made
+    StatIDFTPercent         = 8   // Free Throw %
+    StatID3PA               = 9   // 3-Pointers Attempted
+    StatID3PM               = 10  // 3-Pointers Made
+    StatID3PPercent         = 11  // 3-Point %
+    StatIDPoints            = 12  // Points
+    StatIDOffensiveRebounds = 13  // Offensive Rebounds
+    StatIDDefensiveRebounds = 14  // Defensive Rebounds
+    StatIDRebounds          = 15  // Total Rebounds
+    StatIDAssists           = 16  // Assists
+    StatIDSteals            = 17  // Steals
+    StatIDBlocks            = 18  // Blocks
+    StatIDTurnovers         = 19  // Turnovers
+    StatIDAssistTurnoverRatio = 20 // Assist/Turnover Ratio
+    StatIDPersonalFouls     = 21  // Personal Fouls
 )
 ```
 

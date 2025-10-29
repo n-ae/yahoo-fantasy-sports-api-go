@@ -6,16 +6,16 @@ import (
 
 func TestParseNBAStatsComplete(t *testing.T) {
 	stats := []Stat{
-		{StatID: 5, Value: "10"},   // FGM
-		{StatID: 6, Value: "20"},   // FGA
-		{StatID: 7, Value: "0.500"}, // FG%
-		{StatID: 8, Value: "8"},    // FTM
-		{StatID: 9, Value: "10"},   // FTA
-		{StatID: 10, Value: "0.800"}, // FT%
-		{StatID: 12, Value: "3"},   // 3PM
-		{StatID: 13, Value: "9"},   // 3PA
-		{StatID: 14, Value: "0.333"}, // 3P%
-		{StatID: 15, Value: "31"},  // Points
+		{StatID: 4, Value: "10"},   // FGM
+		{StatID: 3, Value: "20"},   // FGA
+		{StatID: 5, Value: "0.500"}, // FG%
+		{StatID: 7, Value: "8"},    // FTM
+		{StatID: 6, Value: "10"},   // FTA
+		{StatID: 8, Value: "0.800"}, // FT%
+		{StatID: 10, Value: "3"},   // 3PM
+		{StatID: 9, Value: "9"},    // 3PA
+		{StatID: 11, Value: "0.333"}, // 3P%
+		{StatID: 12, Value: "31"},  // Points
 		{StatID: 0, Value: "1"},    // Games
 	}
 
@@ -60,12 +60,12 @@ func TestParseNBAStatsComplete(t *testing.T) {
 
 func TestParseNBAStatsMissingPercentages(t *testing.T) {
 	stats := []Stat{
-		{StatID: 5, Value: "10"},  // FGM
-		{StatID: 6, Value: "20"},  // FGA
-		{StatID: 8, Value: "8"},   // FTM
-		{StatID: 9, Value: "10"},  // FTA
-		{StatID: 12, Value: "3"},  // 3PM
-		{StatID: 13, Value: "9"},  // 3PA
+		{StatID: 4, Value: "10"},  // FGM
+		{StatID: 3, Value: "20"},  // FGA
+		{StatID: 7, Value: "8"},   // FTM
+		{StatID: 6, Value: "10"},  // FTA
+		{StatID: 10, Value: "3"},  // 3PM
+		{StatID: 9, Value: "9"},   // 3PA
 	}
 
 	nbaStats, err := ParseNBAStats(stats)
@@ -84,12 +84,12 @@ func TestParseNBAStatsMissingPercentages(t *testing.T) {
 
 func TestParseNBAStatsZeroAttempts(t *testing.T) {
 	stats := []Stat{
-		{StatID: 5, Value: "0"},  // FGM
-		{StatID: 6, Value: "0"},  // FGA
-		{StatID: 8, Value: "0"},  // FTM
-		{StatID: 9, Value: "0"},  // FTA
-		{StatID: 12, Value: "0"}, // 3PM
-		{StatID: 13, Value: "0"}, // 3PA
+		{StatID: 4, Value: "0"},  // FGM
+		{StatID: 3, Value: "0"},  // FGA
+		{StatID: 7, Value: "0"},  // FTM
+		{StatID: 6, Value: "0"},  // FTA
+		{StatID: 10, Value: "0"}, // 3PM
+		{StatID: 9, Value: "0"},  // 3PA
 	}
 
 	nbaStats, err := ParseNBAStats(stats)
@@ -192,12 +192,12 @@ func TestNBAStatsEffectiveFGPercent(t *testing.T) {
 
 func TestStatHelperGetShootingStats(t *testing.T) {
 	stats := []Stat{
-		{StatID: 5, Value: "10"},  // FGM
-		{StatID: 6, Value: "20"},  // FGA
-		{StatID: 8, Value: "8"},   // FTM
-		{StatID: 9, Value: "10"},  // FTA
-		{StatID: 12, Value: "3"},  // 3PM
-		{StatID: 13, Value: "9"},  // 3PA
+		{StatID: 4, Value: "10"},  // FGM
+		{StatID: 3, Value: "20"},  // FGA
+		{StatID: 7, Value: "8"},   // FTM
+		{StatID: 6, Value: "10"},  // FTA
+		{StatID: 10, Value: "3"},  // 3PM
+		{StatID: 9, Value: "9"},   // 3PA
 	}
 
 	helper := NewStatHelper(stats)
@@ -220,7 +220,7 @@ func TestStatHelperGetShootingStats(t *testing.T) {
 
 func TestStatHelperGetShootingStatsMissing(t *testing.T) {
 	stats := []Stat{
-		{StatID: 5, Value: "10"},  // FGM only
+		{StatID: 4, Value: "10"},  // FGM only
 	}
 
 	helper := NewStatHelper(stats)

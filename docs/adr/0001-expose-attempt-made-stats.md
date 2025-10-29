@@ -17,12 +17,12 @@ These six statistics are fundamental to basketball fantasy analysis and are univ
 ### Current Challenges
 
 1. **Stat IDs are numeric and opaque**: Users must know that:
-   - `5` = Field Goals Made (FGM)
-   - `6` = Field Goals Attempted (FGA)
-   - `8` = Free Throws Made (FTM)
-   - `9` = Free Throws Attempted (FTA)
-   - `12` = 3-Pointers Made (3PM)
-   - `13` = 3-Point Attempts (3PA)
+   - `3` = Field Goals Attempted (FGA)
+   - `4` = Field Goals Made (FGM)
+   - `6` = Free Throws Attempted (FTA)
+   - `7` = Free Throws Made (FTM)
+   - `9` = 3-Point Attempts (3PA)
+   - `10` = 3-Pointers Made (3PM)
 2. **Values are strings**: All stat values come as strings from the API, requiring manual parsing to int/float
 3. **Attempt/Made pairing**: Users must fetch and correlate both attempt and made stats separately
 4. **Stat IDs may vary by league**: Custom league settings can change which stat IDs are used
@@ -62,17 +62,17 @@ Provide pre-parsed structs with properly typed fields for each sport.
 ```go
 type NBAStats struct {
     // Core Shooting Stats - The Six Fundamentals
-    FGM               int     // Field Goals Made (Stat ID 5)
-    FGA               int     // Field Goals Attempted (Stat ID 6)
-    FGPercent         float64 // Field Goal % (Stat ID 7) - auto-calculated if missing
+    FGM               int     // Field Goals Made (Stat ID 4)
+    FGA               int     // Field Goals Attempted (Stat ID 3)
+    FGPercent         float64 // Field Goal % (Stat ID 5) - auto-calculated if missing
 
-    FTM               int     // Free Throws Made (Stat ID 8)
-    FTA               int     // Free Throws Attempted (Stat ID 9)
-    FTPercent         float64 // Free Throw % (Stat ID 10) - auto-calculated if missing
+    FTM               int     // Free Throws Made (Stat ID 7)
+    FTA               int     // Free Throws Attempted (Stat ID 6)
+    FTPercent         float64 // Free Throw % (Stat ID 8) - auto-calculated if missing
 
-    ThreePointsMade    int     // 3-Pointers Made (Stat ID 12)
-    ThreePointsAttempt int     // 3-Point Attempts (Stat ID 13)
-    ThreePPercent      float64 // 3-Point % (Stat ID 14) - auto-calculated if missing
+    ThreePointsMade    int     // 3-Pointers Made (Stat ID 10)
+    ThreePointsAttempt int     // 3-Point Attempts (Stat ID 9)
+    ThreePPercent      float64 // 3-Point % (Stat ID 11) - auto-calculated if missing
 
     // Other Common Stats
     GamesPlayed       int
@@ -135,21 +135,24 @@ Provide helper functions with named constants for stat IDs.
 ```go
 // All six core shooting stat IDs as named constants
 const (
-    StatIDFGM       = 5   // Field Goals Made
-    StatIDFGA       = 6   // Field Goals Attempted
-    StatIDFGPercent = 7   // Field Goal %
+    StatIDFGA       = 3   // Field Goals Attempted
+    StatIDFGM       = 4   // Field Goals Made
+    StatIDFGPercent = 5   // Field Goal %
 
-    StatIDFTM       = 8   // Free Throws Made
-    StatIDFTA       = 9   // Free Throws Attempted
-    StatIDFTPercent = 10  // Free Throw %
+    StatIDFTA       = 6   // Free Throws Attempted
+    StatIDFTM       = 7   // Free Throws Made
+    StatIDFTPercent = 8   // Free Throw %
 
-    StatID3PM       = 12  // 3-Pointers Made
-    StatID3PA       = 13  // 3-Pointers Attempted
-    StatID3PPercent = 14  // 3-Point %
+    StatID3PA       = 9   // 3-Point Attempts
+    StatID3PM       = 10  // 3-Pointers Made
+    StatID3PPercent = 11  // 3-Point %
 
     // Other common stats...
-    StatIDPoints    = 15
-    StatIDRebounds  = 16
+    StatIDPoints    = 12
+    StatIDOffensiveRebounds = 13
+    StatIDDefensiveRebounds = 14
+    StatIDRebounds  = 15
+    StatIDAssists   = 16
     // ... etc
 )
 
@@ -321,12 +324,12 @@ func (n *NBAStats) EffectiveFGPercent() float64
 
 **Exported Constants:**
 ```go
-const StatIDFGM = 5   // Field Goals Made
-const StatIDFGA = 6   // Field Goals Attempted
-const StatIDFTM = 8   // Free Throws Made
-const StatIDFTA = 9   // Free Throws Attempted
-const StatID3PM = 12  // 3-Pointers Made
-const StatID3PA = 13  // 3-Point Attempts
+const StatIDFGA = 3   // Field Goals Attempted
+const StatIDFGM = 4   // Field Goals Made
+const StatIDFTA = 6   // Free Throws Attempted
+const StatIDFTM = 7   // Free Throws Made
+const StatID3PA = 9   // 3-Point Attempts
+const StatID3PM = 10  // 3-Pointers Made
 // ... plus FGPercent, FTPercent, 3PPercent
 ```
 
@@ -364,7 +367,7 @@ This outputs all stat IDs and values, allowing users to identify custom mappings
 ### Percentage Calculation Strategy
 
 **Priority Order:**
-1. Use percentage from API if available (Stat IDs 7, 10, 14)
+1. Use percentage from API if available (Stat IDs 5, 8, 11)
 2. Calculate from attempt/made if percentage missing
 3. Return 0.0 if attempts are 0 (avoid division by zero)
 
@@ -446,12 +449,12 @@ fmt.Printf("TS%%: %.1f%%, eFG%%: %.1f%%\n",
 helper := yahoo.NewStatHelper(player.PlayerStats.Stats)
 
 // Access individual stats using named constants
-fgm, _ := helper.GetIntByID(yahoo.StatIDFGM)  // Stat ID 5
-fga, _ := helper.GetIntByID(yahoo.StatIDFGA)  // Stat ID 6
-ftm, _ := helper.GetIntByID(yahoo.StatIDFTM)  // Stat ID 8
-fta, _ := helper.GetIntByID(yahoo.StatIDFTA)  // Stat ID 9
-tpm, _ := helper.GetIntByID(yahoo.StatID3PM)  // Stat ID 12
-tpa, _ := helper.GetIntByID(yahoo.StatID3PA)  // Stat ID 13
+fgm, _ := helper.GetIntByID(yahoo.StatIDFGM)  // Stat ID 4
+fga, _ := helper.GetIntByID(yahoo.StatIDFGA)  // Stat ID 3
+ftm, _ := helper.GetIntByID(yahoo.StatIDFTM)  // Stat ID 7
+fta, _ := helper.GetIntByID(yahoo.StatIDFTA)  // Stat ID 6
+tpm, _ := helper.GetIntByID(yahoo.StatID3PM)  // Stat ID 10
+tpa, _ := helper.GetIntByID(yahoo.StatID3PA)  // Stat ID 9
 
 fmt.Printf("FG: %d/%d, FT: %d/%d, 3P: %d/%d\n",
     fgm, fga, ftm, fta, tpm, tpa)
@@ -482,18 +485,18 @@ var fgm, fga, ftm, fta, tpm, tpa int
 
 for _, stat := range player.PlayerStats.Stats {
     switch stat.StatID {
-    case 5:  // FGM
-        fmt.Sscanf(stat.Value, "%d", &fgm)
-    case 6:  // FGA
+    case 3:  // FGA
         fmt.Sscanf(stat.Value, "%d", &fga)
-    case 8:  // FTM
-        fmt.Sscanf(stat.Value, "%d", &ftm)
-    case 9:  // FTA
+    case 4:  // FGM
+        fmt.Sscanf(stat.Value, "%d", &fgm)
+    case 6:  // FTA
         fmt.Sscanf(stat.Value, "%d", &fta)
-    case 12: // 3PM
-        fmt.Sscanf(stat.Value, "%d", &tpm)
-    case 13: // 3PA
+    case 7:  // FTM
+        fmt.Sscanf(stat.Value, "%d", &ftm)
+    case 9:  // 3PA
         fmt.Sscanf(stat.Value, "%d", &tpa)
+    case 10: // 3PM
+        fmt.Sscanf(stat.Value, "%d", &tpm)
     }
 }
 
@@ -622,15 +625,15 @@ Summary of support for the six core shooting stats across all three approaches:
 
 | Feature | Parsed Structs | Stat Helper | Raw Access |
 |---------|----------------|-------------|------------|
-| **Field Goals Made (FGM)** | `nbaStats.FGM` | `GetIntByID(StatIDFGM)` | `stat.StatID == 5` |
-| **Field Goals Attempted (FGA)** | `nbaStats.FGA` | `GetIntByID(StatIDFGA)` | `stat.StatID == 6` |
-| **Free Throws Made (FTM)** | `nbaStats.FTM` | `GetIntByID(StatIDFTM)` | `stat.StatID == 8` |
-| **Free Throws Attempted (FTA)** | `nbaStats.FTA` | `GetIntByID(StatIDFTA)` | `stat.StatID == 9` |
-| **3-Pointers Made (3PM)** | `nbaStats.ThreePointsMade` | `GetIntByID(StatID3PM)` | `stat.StatID == 12` |
-| **3-Point Attempts (3PA)** | `nbaStats.ThreePointsAttempt` | `GetIntByID(StatID3PA)` | `stat.StatID == 13` |
-| **Field Goal %** | `nbaStats.FGPercent` | `GetFloatByID(StatIDFGPercent)` | `stat.StatID == 7` |
-| **Free Throw %** | `nbaStats.FTPercent` | `GetFloatByID(StatIDFTPercent)` | `stat.StatID == 10` |
-| **3-Point %** | `nbaStats.ThreePPercent` | `GetFloatByID(StatID3PPercent)` | `stat.StatID == 14` |
+| **Field Goals Made (FGM)** | `nbaStats.FGM` | `GetIntByID(StatIDFGM)` | `stat.StatID == 4` |
+| **Field Goals Attempted (FGA)** | `nbaStats.FGA` | `GetIntByID(StatIDFGA)` | `stat.StatID == 3` |
+| **Free Throws Made (FTM)** | `nbaStats.FTM` | `GetIntByID(StatIDFTM)` | `stat.StatID == 7` |
+| **Free Throws Attempted (FTA)** | `nbaStats.FTA` | `GetIntByID(StatIDFTA)` | `stat.StatID == 6` |
+| **3-Pointers Made (3PM)** | `nbaStats.ThreePointsMade` | `GetIntByID(StatID3PM)` | `stat.StatID == 10` |
+| **3-Point Attempts (3PA)** | `nbaStats.ThreePointsAttempt` | `GetIntByID(StatID3PA)` | `stat.StatID == 9` |
+| **Field Goal %** | `nbaStats.FGPercent` | `GetFloatByID(StatIDFGPercent)` | `stat.StatID == 5` |
+| **Free Throw %** | `nbaStats.FTPercent` | `GetFloatByID(StatIDFTPercent)` | `stat.StatID == 8` |
+| **3-Point %** | `nbaStats.ThreePPercent` | `GetFloatByID(StatID3PPercent)` | `stat.StatID == 11` |
 | **Auto-calc % if missing** | ✅ Yes | ❌ No | ❌ No |
 | **Bulk access** | ✅ All in struct | ✅ `GetShootingStats()` | Manual loop |
 | **Type safety** | ✅ Strong | ⭐ Medium | ❌ Weak |
@@ -641,35 +644,35 @@ Summary of support for the six core shooting stats across all three approaches:
 
 **All six core stats are fully supported:**
 
-✅ **FGM** (Field Goals Made) - Stat ID 5
-- Parsed: `nbaStats.FGM` (int)
-- Helper: `GetIntByID(StatIDFGM)` (int, error)
-- Raw: Loop with `stat.StatID == 5`
-
-✅ **FGA** (Field Goals Attempted) - Stat ID 6
+✅ **FGA** (Field Goals Attempted) - Stat ID 3
 - Parsed: `nbaStats.FGA` (int)
 - Helper: `GetIntByID(StatIDFGA)` (int, error)
-- Raw: Loop with `stat.StatID == 6`
+- Raw: Loop with `stat.StatID == 3`
 
-✅ **FTM** (Free Throws Made) - Stat ID 8
-- Parsed: `nbaStats.FTM` (int)
-- Helper: `GetIntByID(StatIDFTM)` (int, error)
-- Raw: Loop with `stat.StatID == 8`
+✅ **FGM** (Field Goals Made) - Stat ID 4
+- Parsed: `nbaStats.FGM` (int)
+- Helper: `GetIntByID(StatIDFGM)` (int, error)
+- Raw: Loop with `stat.StatID == 4`
 
-✅ **FTA** (Free Throws Attempted) - Stat ID 9
+✅ **FTA** (Free Throws Attempted) - Stat ID 6
 - Parsed: `nbaStats.FTA` (int)
 - Helper: `GetIntByID(StatIDFTA)` (int, error)
-- Raw: Loop with `stat.StatID == 9`
+- Raw: Loop with `stat.StatID == 6`
 
-✅ **3PM** (3-Pointers Made) - Stat ID 12
-- Parsed: `nbaStats.ThreePointsMade` (int)
-- Helper: `GetIntByID(StatID3PM)` (int, error)
-- Raw: Loop with `stat.StatID == 12`
+✅ **FTM** (Free Throws Made) - Stat ID 7
+- Parsed: `nbaStats.FTM` (int)
+- Helper: `GetIntByID(StatIDFTM)` (int, error)
+- Raw: Loop with `stat.StatID == 7`
 
-✅ **3PA** (3-Point Attempts) - Stat ID 13
+✅ **3PA** (3-Point Attempts) - Stat ID 9
 - Parsed: `nbaStats.ThreePointsAttempt` (int)
 - Helper: `GetIntByID(StatID3PA)` (int, error)
-- Raw: Loop with `stat.StatID == 13`
+- Raw: Loop with `stat.StatID == 9`
+
+✅ **3PM** (3-Pointers Made) - Stat ID 10
+- Parsed: `nbaStats.ThreePointsMade` (int)
+- Helper: `GetIntByID(StatID3PM)` (int, error)
+- Raw: Loop with `stat.StatID == 10`
 
 **Test Coverage:**
 - ✅ 15 unit tests covering all six stats

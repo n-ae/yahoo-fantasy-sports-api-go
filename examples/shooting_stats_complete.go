@@ -77,11 +77,11 @@ func main() {
 			player.DisplayPosition,
 			player.EditorialTeamAbbr)
 
-		fmt.Printf("  FG:  %3d / %-3d  (%.1f%%)  [Stat IDs: 5, 6]\n",
+		fmt.Printf("  FG:  %3d / %-3d  (%.1f%%)  [Stat IDs: 4, 3]\n",
 			nbaStats.FGM, nbaStats.FGA, nbaStats.FGPercent*100)
-		fmt.Printf("  FT:  %3d / %-3d  (%.1f%%)  [Stat IDs: 8, 9]\n",
+		fmt.Printf("  FT:  %3d / %-3d  (%.1f%%)  [Stat IDs: 7, 6]\n",
 			nbaStats.FTM, nbaStats.FTA, nbaStats.FTPercent*100)
-		fmt.Printf("  3P:  %3d / %-3d  (%.1f%%)  [Stat IDs: 12, 13]\n",
+		fmt.Printf("  3P:  %3d / %-3d  (%.1f%%)  [Stat IDs: 10, 9]\n",
 			nbaStats.ThreePointsMade, nbaStats.ThreePointsAttempt, nbaStats.ThreePPercent*100)
 
 		fmt.Printf("  Advanced: TS%% = %.1f%%, eFG%% = %.1f%%\n",
@@ -105,15 +105,15 @@ func main() {
 
 			fgm, _ := helper.GetIntByID(yahoo.StatIDFGM)
 			fga, _ := helper.GetIntByID(yahoo.StatIDFGA)
-			fmt.Printf("Field Goals:  FGM=%d (ID 5), FGA=%d (ID 6)\n", fgm, fga)
+			fmt.Printf("Field Goals:  FGM=%d (ID 4), FGA=%d (ID 3)\n", fgm, fga)
 
 			ftm, _ := helper.GetIntByID(yahoo.StatIDFTM)
 			fta, _ := helper.GetIntByID(yahoo.StatIDFTA)
-			fmt.Printf("Free Throws:  FTM=%d (ID 8), FTA=%d (ID 9)\n", ftm, fta)
+			fmt.Printf("Free Throws:  FTM=%d (ID 7), FTA=%d (ID 6)\n", ftm, fta)
 
 			tpm, _ := helper.GetIntByID(yahoo.StatID3PM)
 			tpa, _ := helper.GetIntByID(yahoo.StatID3PA)
-			fmt.Printf("3-Pointers:   3PM=%d (ID 12), 3PA=%d (ID 13)\n", tpm, tpa)
+			fmt.Printf("3-Pointers:   3PM=%d (ID 10), 3PA=%d (ID 9)\n", tpm, tpa)
 			fmt.Println()
 
 			fmt.Println("Bulk access using GetShootingStats():")
@@ -139,23 +139,23 @@ func main() {
 			var fgm, fga, ftm, fta, tpm, tpa int
 			for _, stat := range playerWithStats.PlayerStats.Stats {
 				switch stat.StatID {
-				case 5:
-					fmt.Printf("  Stat ID  5 (FGM): %s\n", stat.Value)
+				case 4:
+					fmt.Printf("  Stat ID  4 (FGM): %s\n", stat.Value)
 					fmt.Sscanf(stat.Value, "%d", &fgm)
-				case 6:
-					fmt.Printf("  Stat ID  6 (FGA): %s\n", stat.Value)
+				case 3:
+					fmt.Printf("  Stat ID  3 (FGA): %s\n", stat.Value)
 					fmt.Sscanf(stat.Value, "%d", &fga)
-				case 8:
-					fmt.Printf("  Stat ID  8 (FTM): %s\n", stat.Value)
+				case 7:
+					fmt.Printf("  Stat ID  7 (FTM): %s\n", stat.Value)
 					fmt.Sscanf(stat.Value, "%d", &ftm)
-				case 9:
-					fmt.Printf("  Stat ID  9 (FTA): %s\n", stat.Value)
+				case 6:
+					fmt.Printf("  Stat ID  6 (FTA): %s\n", stat.Value)
 					fmt.Sscanf(stat.Value, "%d", &fta)
-				case 12:
-					fmt.Printf("  Stat ID 12 (3PM): %s\n", stat.Value)
+				case 10:
+					fmt.Printf("  Stat ID 10 (3PM): %s\n", stat.Value)
 					fmt.Sscanf(stat.Value, "%d", &tpm)
-				case 13:
-					fmt.Printf("  Stat ID 13 (3PA): %s\n", stat.Value)
+				case 9:
+					fmt.Printf("  Stat ID  9 (3PA): %s\n", stat.Value)
 					fmt.Sscanf(stat.Value, "%d", &tpa)
 				}
 			}
@@ -192,12 +192,12 @@ func main() {
 	fmt.Println("=== Summary ===")
 	fmt.Println()
 	fmt.Println("All Six Core Shooting Stats Supported:")
-	fmt.Println("  ✓ FGM (Field Goals Made) - Stat ID 5")
-	fmt.Println("  ✓ FGA (Field Goals Attempted) - Stat ID 6")
-	fmt.Println("  ✓ FTM (Free Throws Made) - Stat ID 8")
-	fmt.Println("  ✓ FTA (Free Throws Attempted) - Stat ID 9")
-	fmt.Println("  ✓ 3PM (3-Pointers Made) - Stat ID 12")
-	fmt.Println("  ✓ 3PA (3-Point Attempts) - Stat ID 13")
+	fmt.Println("  ✓ FGA (Field Goals Attempted) - Stat ID 3")
+	fmt.Println("  ✓ FGM (Field Goals Made) - Stat ID 4")
+	fmt.Println("  ✓ FTA (Free Throws Attempted) - Stat ID 6")
+	fmt.Println("  ✓ FTM (Free Throws Made) - Stat ID 7")
+	fmt.Println("  ✓ 3PA (3-Point Attempts) - Stat ID 9")
+	fmt.Println("  ✓ 3PM (3-Pointers Made) - Stat ID 10")
 	fmt.Println()
 	fmt.Println("Automatic Percentage Calculations:")
 	fmt.Println("  ✓ FG% = FGM / FGA")
