@@ -1,6 +1,7 @@
 package yahoo
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -40,6 +41,26 @@ type noopLogger struct{}
 
 func (noopLogger) Printf(string, ...interface{}) {}
 
+// Token holds the credentials produced by a token refresh. ExpiresAt is derived
+// from the token endpoint's expires_in.
+type Token struct {
+	AccessToken  string
+	RefreshToken string
+	ExpiresAt    time.Time
+}
+
+// TokenStore persists tokens after a successful refresh so they survive process
+// restarts (Yahoo rotates refresh tokens, so an in-memory-only client can lock
+// itself out after a restart). See docs/adr/0004-token-persistence.md.
+//
+// Save is best-effort: an error is logged via the Logger but does not fail the
+// API request, since the rotated token is already valid for this process.
+// Loading initial tokens is the caller's responsibility (pass them via
+// WithTokens at construction).
+type TokenStore interface {
+	Save(ctx context.Context, tok Token) error
+}
+
 type config struct {
 	apiKey       string
 	apiSecret    string
@@ -51,6 +72,8 @@ type config struct {
 	cache        Cache
 	cacheEnabled bool
 	logger       Logger
+	tokenStore   TokenStore
+	retry        RetryPolicy
 }
 
 func defaultConfig() config {
@@ -59,6 +82,7 @@ func defaultConfig() config {
 		tokenURL:   defaultTokenURL,
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 		logger:     noopLogger{},
+		retry:      defaultRetryPolicy(),
 	}
 }
 
@@ -153,6 +177,29 @@ func WithLogger(l Logger) Option {
 	}
 }
 
+// WithTokenStore persists tokens after each successful refresh (see TokenStore).
+func WithTokenStore(s TokenStore) Option {
+	return func(c *config) error {
+		if s == nil {
+			return fmt.Errorf("yahoo: WithTokenStore requires a non-nil TokenStore")
+		}
+		c.tokenStore = s
+		return nil
+	}
+}
+
+// WithRetryPolicy overrides the default policy for retrying transient GET
+// failures (429 and 5xx). See RetryPolicy.
+func WithRetryPolicy(p RetryPolicy) Option {
+	return func(c *config) error {
+		if err := p.validate(); err != nil {
+			return err
+		}
+		c.retry = p
+		return nil
+	}
+}
+
 // FromEnv fills any still-unset credentials, tokens, and base URL from the
 // standard environment variables, and enables caching if YAHOO_ENABLE_CACHE is
 // "true". Explicit With* options take precedence: FromEnv only fills gaps.
@@ -217,5 +264,7 @@ func NewClientWithOptions(opts ...Option) (*Client, error) {
 		cache:        cfg.cache,
 		cacheEnabled: cfg.cacheEnabled,
 		logger:       cfg.logger,
+		tokenStore:   cfg.tokenStore,
+		retry:        cfg.retry,
 	}, nil
 }

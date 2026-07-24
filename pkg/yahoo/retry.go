@@ -2,20 +2,54 @@ package yahoo
 
 import (
 	"context"
+	"fmt"
 	"math/rand/v2"
 	"net/http"
 	"strconv"
 	"time"
 )
 
-// Retry policy for safe (GET) requests against transient failures. These are
-// conservative fixed defaults; making them configurable is deferred to the
-// options-constructor work (see docs/adr/0003-options-constructor.md).
+// Conservative default retry parameters for safe (GET) requests against
+// transient failures. Override per-client with WithRetryPolicy.
 const (
-	maxRetries  = 3
-	baseBackoff = 500 * time.Millisecond
-	maxBackoff  = 8 * time.Second
+	defaultMaxRetries  = 3
+	defaultBaseBackoff = 500 * time.Millisecond
+	defaultMaxBackoff  = 8 * time.Second
 )
+
+// RetryPolicy controls how transient GET failures (429 and 5xx) are retried.
+// The zero value is invalid; obtain a starting point from the defaults via
+// NewClientWithOptions and override with WithRetryPolicy.
+type RetryPolicy struct {
+	// MaxRetries is the number of retries after the first attempt (0 disables
+	// retrying).
+	MaxRetries int
+	// BaseBackoff is the first backoff duration; it doubles each attempt.
+	BaseBackoff time.Duration
+	// MaxBackoff caps the backoff duration.
+	MaxBackoff time.Duration
+}
+
+func defaultRetryPolicy() RetryPolicy {
+	return RetryPolicy{
+		MaxRetries:  defaultMaxRetries,
+		BaseBackoff: defaultBaseBackoff,
+		MaxBackoff:  defaultMaxBackoff,
+	}
+}
+
+func (p RetryPolicy) validate() error {
+	if p.MaxRetries < 0 {
+		return fmt.Errorf("yahoo: RetryPolicy.MaxRetries must be >= 0")
+	}
+	if p.BaseBackoff <= 0 || p.MaxBackoff <= 0 {
+		return fmt.Errorf("yahoo: RetryPolicy backoff durations must be > 0")
+	}
+	if p.MaxBackoff < p.BaseBackoff {
+		return fmt.Errorf("yahoo: RetryPolicy.MaxBackoff must be >= BaseBackoff")
+	}
+	return nil
+}
 
 // isRetryableStatus reports whether an HTTP status warrants a bounded retry.
 // GET requests are idempotent, so rate-limiting and transient server errors
@@ -34,11 +68,11 @@ func isRetryableStatus(code int) bool {
 }
 
 // backoffDelay returns an exponential backoff with full jitter for the given
-// zero-based attempt, capped at maxBackoff.
-func backoffDelay(attempt int) time.Duration {
-	d := baseBackoff << attempt
-	if d > maxBackoff || d <= 0 { // <=0 guards against shift overflow
-		d = maxBackoff
+// zero-based attempt, capped at the policy's MaxBackoff.
+func backoffDelay(p RetryPolicy, attempt int) time.Duration {
+	d := p.BaseBackoff << attempt
+	if d > p.MaxBackoff || d <= 0 { // <=0 guards against shift overflow
+		d = p.MaxBackoff
 	}
 	return time.Duration(rand.Int64N(int64(d) + 1))
 }

@@ -106,9 +106,57 @@ func TestMakeRequestExhaustsRetries(t *testing.T) {
 	if apiErr.StatusCode != http.StatusTooManyRequests {
 		t.Errorf("status = %d, want 429", apiErr.StatusCode)
 	}
-	// maxRetries retries => maxRetries+1 total attempts.
-	if got := atomic.LoadInt32(&calls); got != int32(maxRetries+1) {
-		t.Errorf("server calls = %d, want %d", got, maxRetries+1)
+	// defaultMaxRetries retries => defaultMaxRetries+1 total attempts.
+	if got := atomic.LoadInt32(&calls); got != int32(defaultMaxRetries+1) {
+		t.Errorf("server calls = %d, want %d", got, defaultMaxRetries+1)
+	}
+}
+
+func TestRetryPolicyValidation(t *testing.T) {
+	bad := map[string]RetryPolicy{
+		"zero value":        {},
+		"negative retries":  {MaxRetries: -1, BaseBackoff: time.Second, MaxBackoff: time.Second},
+		"zero base backoff": {MaxRetries: 1, BaseBackoff: 0, MaxBackoff: time.Second},
+		"max below base":    {MaxRetries: 1, BaseBackoff: 2 * time.Second, MaxBackoff: time.Second},
+	}
+	for name, p := range bad {
+		if _, err := NewClientWithOptions(WithRetryPolicy(p)); err == nil {
+			t.Errorf("%s: expected validation error, got nil", name)
+		}
+	}
+
+	good := RetryPolicy{MaxRetries: 1, BaseBackoff: time.Millisecond, MaxBackoff: 2 * time.Millisecond}
+	if _, err := NewClientWithOptions(WithRetryPolicy(good)); err != nil {
+		t.Errorf("valid policy rejected: %v", err)
+	}
+}
+
+// MaxRetries=0 must disable retrying: a transient status returns immediately.
+func TestWithRetryPolicyDisablesRetries(t *testing.T) {
+	var calls int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&calls, 1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer srv.Close()
+
+	c, err := NewClientWithOptions(
+		WithTokens("tok", ""),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithRetryPolicy(RetryPolicy{MaxRetries: 0, BaseBackoff: time.Millisecond, MaxBackoff: time.Millisecond}),
+	)
+	if err != nil {
+		t.Fatalf("construction failed: %v", err)
+	}
+
+	_, err = c.makeRequest(context.Background(), "x")
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 APIError, got %v", err)
+	}
+	if got := atomic.LoadInt32(&calls); got != 1 {
+		t.Errorf("server calls = %d, want 1 (no retries)", got)
 	}
 }
 

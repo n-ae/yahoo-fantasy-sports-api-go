@@ -25,6 +25,8 @@ type Client struct {
 	tokenURL     string
 	cache        Cache
 	logger       Logger
+	tokenStore   TokenStore
+	retry        RetryPolicy
 	tokenMu      sync.RWMutex
 	cacheEnabled bool
 }
@@ -313,16 +315,35 @@ func (c *Client) GetTeamRoster(ctx context.Context, teamKey string) ([]Roster, e
 // token and return without hitting the token endpoint again. The refresh HTTP
 // call honours ctx.
 func (c *Client) refreshIfStale(ctx context.Context, usedToken string) error {
+	tok, refreshed, err := c.doRefresh(ctx, usedToken)
+	if err != nil || !refreshed {
+		return err
+	}
+
+	// Persist the rotated tokens outside the lock. Save is advisory: a failure
+	// is logged but does not fail the request, since tok is valid in memory.
+	if c.tokenStore != nil {
+		if serr := c.tokenStore.Save(ctx, tok); serr != nil {
+			c.logger.Printf("yahoo: token persistence failed: %v", serr)
+		}
+	}
+	return nil
+}
+
+// doRefresh performs the locked, single-flight token exchange. It returns the
+// rotated token and refreshed=true only when this call actually refreshed;
+// refreshed=false means another goroutine already did (no persistence needed).
+func (c *Client) doRefresh(ctx context.Context, usedToken string) (Token, bool, error) {
 	c.tokenMu.Lock()
 	defer c.tokenMu.Unlock()
 
 	// Another goroutine already refreshed while we waited for the lock.
 	if c.accessToken != usedToken {
-		return nil
+		return Token{}, false, nil
 	}
 
 	if c.refreshToken == "" {
-		return fmt.Errorf("no refresh token available")
+		return Token{}, false, fmt.Errorf("no refresh token available")
 	}
 
 	data := url.Values{}
@@ -331,7 +352,7 @@ func (c *Client) refreshIfStale(ctx context.Context, usedToken string) error {
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.tokenURL, bytes.NewBufferString(data.Encode()))
 	if err != nil {
-		return fmt.Errorf("failed to create token request: %w", err)
+		return Token{}, false, fmt.Errorf("failed to create token request: %w", err)
 	}
 
 	authHeader := base64.StdEncoding.EncodeToString([]byte(c.apiKey + ":" + c.apiSecret))
@@ -340,18 +361,18 @@ func (c *Client) refreshIfStale(ctx context.Context, usedToken string) error {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to refresh token: %w", err)
+		return Token{}, false, fmt.Errorf("failed to refresh token: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, _ := readLimited(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("token refresh failed (status %d): %s", resp.StatusCode, string(body))
+		return Token{}, false, fmt.Errorf("token refresh failed (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var tokenResp tokenResponse
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		return fmt.Errorf("failed to parse token response: %w", err)
+		return Token{}, false, fmt.Errorf("failed to parse token response: %w", err)
 	}
 
 	c.accessToken = tokenResp.AccessToken
@@ -359,7 +380,12 @@ func (c *Client) refreshIfStale(ctx context.Context, usedToken string) error {
 		c.refreshToken = tokenResp.RefreshToken
 	}
 
-	return nil
+	tok := Token{
+		AccessToken:  c.accessToken,
+		RefreshToken: c.refreshToken,
+		ExpiresAt:    time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second),
+	}
+	return tok, true, nil
 }
 
 func (c *Client) makeRequest(ctx context.Context, endpoint string) ([]byte, error) {
@@ -402,8 +428,8 @@ func (c *Client) makeRequest(ctx context.Context, endpoint string) ([]byte, erro
 
 		// Rate limiting and transient server errors: bounded retry with backoff,
 		// honouring Retry-After on 429.
-		if isRetryableStatus(resp.StatusCode) && attempt < maxRetries {
-			delay := backoffDelay(attempt)
+		if isRetryableStatus(resp.StatusCode) && attempt < c.retry.MaxRetries {
+			delay := backoffDelay(c.retry, attempt)
 			if resp.StatusCode == http.StatusTooManyRequests {
 				if ra, ok := retryAfterDelay(resp.Header.Get("Retry-After")); ok {
 					delay = ra
@@ -411,7 +437,7 @@ func (c *Client) makeRequest(ctx context.Context, endpoint string) ([]byte, erro
 			}
 			status := resp.StatusCode
 			resp.Body.Close()
-			c.logger.Printf("yahoo: %s returned %d, retrying in %s (attempt %d/%d)", endpoint, status, delay, attempt+1, maxRetries)
+			c.logger.Printf("yahoo: %s returned %d, retrying in %s (attempt %d/%d)", endpoint, status, delay, attempt+1, c.retry.MaxRetries)
 			if err := sleepCtx(ctx, delay); err != nil {
 				return nil, err
 			}

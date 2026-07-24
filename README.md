@@ -109,7 +109,34 @@ client, err := yahoo.NewClientWithOptions(
 
 Available options: `WithCredentials`, `WithTokens`, `WithHTTPClient`,
 `WithBaseURL`, `WithTokenURL`, `WithCache`, `WithSQLiteCache`, `WithLogger`,
-`FromEnv`. Explicit options take precedence over `FromEnv`.
+`WithTokenStore`, `WithRetryPolicy`, `FromEnv`. Explicit options take precedence
+over `FromEnv`.
+
+### Restart-safe tokens
+
+Yahoo rotates refresh tokens, so an unattended service that only keeps tokens in
+memory can lock itself out after a restart. Supply a `TokenStore` to persist the
+rotated tokens on each refresh (loading them at startup stays your job):
+
+```go
+type myStore struct{ /* db handle, file path, ... */ }
+
+func (s *myStore) Save(ctx context.Context, t yahoo.Token) error {
+    // persist t.AccessToken, t.RefreshToken, t.ExpiresAt
+    return nil
+}
+
+tok := myStore.Load() // your load
+client, _ := yahoo.NewClientWithOptions(
+    yahoo.WithCredentials(key, secret),
+    yahoo.WithTokens(tok.AccessToken, tok.RefreshToken),
+    yahoo.WithTokenStore(&myStore{}),
+)
+```
+
+`Save` is best-effort: a failure is logged via the `Logger` but does not fail the
+request (the rotated token is valid in memory). Retry behavior can be tuned with
+`WithRetryPolicy(yahoo.RetryPolicy{MaxRetries: 5, BaseBackoff: time.Second, MaxBackoff: 30*time.Second})`.
 
 > **Deprecation:** `NewClient(apiKey, apiSecret, db)` is deprecated in favor of
 > `NewClientWithOptions` and is scheduled for removal in v2

@@ -22,6 +22,7 @@ Each ADR follows this structure:
 | [0001](./0001-expose-attempt-made-stats.md) | Expose Attempt and Made Stats in SDK | Accepted | 2025-10-28 |
 | [0002](./0002-separate-sdk-from-application.md) | Separate the Reusable SDK from the Bundled Application | Proposed | 2026-07-24 |
 | [0003](./0003-options-constructor.md) | Options-Based Constructor with Typed Configuration Errors | Proposed | 2026-07-24 |
+| [0004](./0004-token-persistence.md) | OAuth Token Persistence | Accepted | 2026-07-24 |
 
 ## Decision Summary
 
@@ -54,15 +55,17 @@ Each ADR follows this structure:
 
 **Decision** (Proposed): Replace `NewClient(apiKey, apiSecret string, db *sql.DB) *Client` with `NewClient(opts ...Option) (*Client, error)`. Validate configuration at construction, make the database optional, move environment loading behind an explicit `FromEnv()`, and inject HTTP/cache/logger dependencies. Addresses assessment findings M2, M3.
 
+### ADR-0004: OAuth Token Persistence
+
+**Decision** (Accepted, v1.8.0): Add a dependency-free `TokenStore` hook called after a successful token refresh so applications can persist rotated tokens and survive restarts. `Save` errors are advisory (logged, not fatal). Deliberately does **not** adopt `golang.org/x/oauth2`, since the existing manual refresh already provides single-flight/context/thread-safety. Addresses assessment finding 3.1.
+
 ## Future ADRs
 
 Planned topics for future architectural decisions:
 
-- **ADR-0004**: Replace manual OAuth refresh with `oauth2.TokenSource` (single-flight + token persistence)
-- **ADR-0005**: HTTP resilience — rate-limit (429/Retry-After) and bounded 5xx retry strategy
-- **ADR-0006**: Dynamic game-key discovery vs. the static `games.go` map
-- **ADR-0007**: Sport-specific stat definitions and mappings (NFL, MLB, NHL)
-- **ADR-0008**: CLI tool architecture for data export
+- **ADR-0005**: Dynamic game-key discovery vs. the static `games.go` map
+- **ADR-0006**: Sport-specific stat definitions and mappings (NFL, MLB, NHL)
+- **ADR-0007**: CLI tool architecture for data export (the SDK/app split target)
 
 ## Contributing
 

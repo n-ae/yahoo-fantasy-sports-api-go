@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.8.0] - 2026-07-24
+
+Second step of the [v2 roadmap](docs/v2-roadmap.md), Phase B. See [ADR-0004](docs/adr/0004-token-persistence.md).
+
+### Added
+- **Token persistence** — `WithTokenStore(TokenStore)` persists rotated tokens after each successful refresh, so unattended services survive restarts (Yahoo rotates refresh tokens). `Save` is called only by the goroutine that actually refreshed (single-flight aware) and is best-effort: a `Save` error is logged via the `Logger`, not fatal. New exported `Token` struct and `TokenStore` interface. Loading initial tokens remains the caller's job (`WithTokens`).
+- **Configurable retries** — `WithRetryPolicy(RetryPolicy)` overrides the transient-failure retry defaults (max retries, base/max backoff), exposing the policy introduced in v1.6.2.
+
+### Notes
+- The client deliberately does **not** depend on `golang.org/x/oauth2`; the existing manual refresh already provides single-flight, context propagation, and thread safety (see ADR-0004).
+
 ## [1.7.0] - 2026-07-24
 
 First step of the [v2 roadmap](docs/v2-roadmap.md): the new construction surface lands additively; the old constructor is deprecated but unchanged.
