@@ -22,16 +22,6 @@ type yahooDraftResultsResponse struct {
 	} `json:"fantasy_content"`
 }
 
-type yahooTeamDraftResultsResponse struct {
-	FantasyContent struct {
-		Team struct {
-			DraftResults []struct {
-				DraftResult yahooDraftResultData `json:"draft_result"`
-			} `json:"draft_results"`
-		} `json:"team"`
-	} `json:"fantasy_content"`
-}
-
 type yahooDraftResultData struct {
 	Pick    string `json:"pick"`
 	Round   string `json:"round"`

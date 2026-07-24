@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.2.5] - 2026-07-24
+
+### Changed
+- Lowered the minimum Go version from `1.25.0` to `1.22.0` (the actual floor — the only version-gated feature is `math/rand/v2`), broadening consumer compatibility. No source changes were needed.
+- Hardened CI: added a Go-version matrix (`1.22.x` + `stable`), `gofmt` enforcement, `staticcheck` (pinned `v0.7.0`), and `govulncheck`; pinned the GitHub Actions to commit SHAs.
+
+### Fixed
+- Two `staticcheck` findings: removed the unused `yahooTeamDraftResultsResponse` type, and range over the string directly instead of `[]rune(value)` in compound-stat parsing (no behavior change).
+
 ## [2.2.4] - 2026-07-24
 
 ### Documentation

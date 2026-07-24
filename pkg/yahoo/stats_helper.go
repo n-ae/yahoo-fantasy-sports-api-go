@@ -133,11 +133,10 @@ func (sh *StatHelper) parseCompoundStat(statID int) (made int, attempted int, er
 	}
 
 	// Parse compound format "made/attempted"
-	parts := []rune(value)
 	var madeStr, attemptedStr string
 	slashFound := false
 
-	for _, ch := range parts {
+	for _, ch := range value {
 		if ch == '/' {
 			slashFound = true
 			continue
