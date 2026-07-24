@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.1] - 2026-07-24
+
+### Documentation
+- Added `docs/v2.0.0-checklist.md` — the concrete Phase D execution checklist for the eventual v2.0.0 breaking cut (module `/v2` path, constructor finalization, application relocation, final M5 fixes, verification, and release/branching). No code changes.
+
 ## [1.9.0] - 2026-07-24
 
 Third step of the [v2 roadmap](docs/v2-roadmap.md), Phase C — non-breaking prep for the SDK/application split.
