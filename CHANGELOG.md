@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0] - 2026-07-24
+
+First step of the [v2 roadmap](docs/v2-roadmap.md): the new construction surface lands additively; the old constructor is deprecated but unchanged.
+
+### Added
+- `NewClientWithOptions(opts ...Option) (*Client, error)` — validating, functional-options constructor. The database is now optional and configuration errors surface at construction.
+- Options: `WithCredentials`, `WithTokens`, `WithHTTPClient`, `WithBaseURL`, `WithTokenURL`, `WithCache`, `WithSQLiteCache`, `WithLogger`, `FromEnv`.
+- Interfaces: `HTTPDoer` (inject `*http.Client` or a mock/transport), `Cache` (pluggable response cache; the bundled `APICache` satisfies it), and `Logger` (advisory diagnostics; no-op by default, currently emits retry notices).
+
+### Deprecated
+- `NewClient(apiKey, apiSecret string, db *sql.DB) *Client` — use `NewClientWithOptions`. Behavior is unchanged; it now delegates to the new constructor and is scheduled for removal in v2.
+
 ## [1.6.2] - 2026-07-24
 
 ### Added

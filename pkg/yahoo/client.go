@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -21,10 +20,11 @@ type Client struct {
 	apiSecret    string
 	accessToken  string
 	refreshToken string
-	httpClient   *http.Client
+	httpClient   HTTPDoer
 	baseURL      string
 	tokenURL     string
-	cache        *APICache
+	cache        Cache
+	logger       Logger
 	tokenMu      sync.RWMutex
 	cacheEnabled bool
 }
@@ -201,35 +201,39 @@ func readLimited(r io.Reader) ([]byte, error) {
 	return io.ReadAll(io.LimitReader(r, maxResponseBody))
 }
 
+// NewClient constructs a Client from a consumer key/secret and a SQLite
+// database, falling back to environment variables for unset values.
+//
+// Deprecated: use NewClientWithOptions, which validates configuration, returns
+// an error, makes the database optional, and injects dependencies:
+//
+//	client, err := yahoo.NewClientWithOptions(
+//	    yahoo.WithCredentials(key, secret),
+//	    yahoo.WithTokens(access, refresh),
+//	    yahoo.WithSQLiteCache(db),
+//	)
+//
+// This positional constructor is retained for backward compatibility and is
+// scheduled for removal in v2. See docs/v2-roadmap.md.
 func NewClient(apiKey, apiSecret string, db *sql.DB) *Client {
-	if apiKey == "" {
-		apiKey = os.Getenv("YAHOO_CONSUMER_KEY")
-	}
-	if apiSecret == "" {
-		apiSecret = os.Getenv("YAHOO_CONSUMER_SECRET")
-	}
+	// Preserve legacy behavior exactly: env fallback for all fields, and a
+	// SQLite cache backed by db (which may be nil; the cache guards against it).
+	c, _ := NewClientWithOptions(
+		WithCredentials(apiKey, apiSecret),
+		FromEnv(),
+		withLegacySQLiteCache(db),
+	)
+	return c
+}
 
-	accessToken := os.Getenv("YAHOO_ACCESS_TOKEN")
-	refreshToken := os.Getenv("YAHOO_REFRESH_TOKEN")
-	baseURL := os.Getenv("YAHOO_BASE_URL")
-	if baseURL == "" {
-		baseURL = "https://fantasysports.yahooapis.com/fantasy/v2"
-	}
-
-	cacheEnabled := os.Getenv("YAHOO_ENABLE_CACHE") == "true"
-
-	tokenURL := "https://api.login.yahoo.com/oauth2/get_token"
-
-	return &Client{
-		apiKey:       apiKey,
-		apiSecret:    apiSecret,
-		accessToken:  accessToken,
-		refreshToken: refreshToken,
-		httpClient:   &http.Client{Timeout: 30 * time.Second},
-		baseURL:      baseURL,
-		tokenURL:     tokenURL,
-		cache:        &APICache{db: db},
-		cacheEnabled: cacheEnabled,
+// withLegacySQLiteCache mirrors the pre-options behavior of always attaching an
+// *APICache (even with a nil db). Unlike the public WithSQLiteCache, it does not
+// reject a nil database and does not force caching on; FromEnv controls
+// cacheEnabled. Internal use only, for the deprecated NewClient.
+func withLegacySQLiteCache(db *sql.DB) Option {
+	return func(cfg *config) error {
+		cfg.cache = &APICache{db: db}
+		return nil
 	}
 }
 
@@ -405,7 +409,9 @@ func (c *Client) makeRequest(ctx context.Context, endpoint string) ([]byte, erro
 					delay = ra
 				}
 			}
+			status := resp.StatusCode
 			resp.Body.Close()
+			c.logger.Printf("yahoo: %s returned %d, retrying in %s (attempt %d/%d)", endpoint, status, delay, attempt+1, maxRetries)
 			if err := sleepCtx(ctx, delay); err != nil {
 				return nil, err
 			}

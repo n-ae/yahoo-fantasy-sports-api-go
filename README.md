@@ -65,7 +65,14 @@ func main() {
     }
     defer db.Close()
 
-    client := yahoo.NewClient("", "", db)
+    client, err := yahoo.NewClientWithOptions(
+        yahoo.WithCredentials("", ""), // or omit and rely on FromEnv()
+        yahoo.FromEnv(),               // reads YAHOO_ACCESS_TOKEN etc.
+        yahoo.WithSQLiteCache(db),     // optional; omit for no caching
+    )
+    if err != nil {
+        log.Fatal(err)
+    }
     ctx := context.Background()
 
     gameKey, _ := yahoo.GetGameKey("nfl", 2024)
@@ -82,6 +89,31 @@ func main() {
     }
 }
 ```
+
+## Configuration
+
+Construct the client with `NewClientWithOptions`, which validates configuration
+and returns an error. All dependencies are injectable and the database is
+optional:
+
+```go
+client, err := yahoo.NewClientWithOptions(
+    yahoo.WithCredentials(consumerKey, consumerSecret),
+    yahoo.WithTokens(accessToken, refreshToken),
+    yahoo.WithHTTPClient(httpClient),   // inject *http.Client or a mock
+    yahoo.WithSQLiteCache(db),          // or WithCache(myCache), or omit
+    yahoo.WithLogger(logger),           // advisory diagnostics; optional
+    // yahoo.FromEnv(),                 // fill gaps from YAHOO_* env vars
+)
+```
+
+Available options: `WithCredentials`, `WithTokens`, `WithHTTPClient`,
+`WithBaseURL`, `WithTokenURL`, `WithCache`, `WithSQLiteCache`, `WithLogger`,
+`FromEnv`. Explicit options take precedence over `FromEnv`.
+
+> **Deprecation:** `NewClient(apiKey, apiSecret, db)` is deprecated in favor of
+> `NewClientWithOptions` and is scheduled for removal in v2
+> (see [docs/v2-roadmap.md](docs/v2-roadmap.md)). It still works unchanged.
 
 ## API Reference
 
