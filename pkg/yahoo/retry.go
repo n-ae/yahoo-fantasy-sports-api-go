@@ -19,7 +19,7 @@ const (
 
 // RetryPolicy controls how transient GET failures (429 and 5xx) are retried.
 // The zero value is invalid; obtain a starting point from the defaults via
-// NewClientWithOptions and override with WithRetryPolicy.
+// NewClient and override with WithRetryPolicy.
 type RetryPolicy struct {
 	// MaxRetries is the number of retries after the first attempt (0 disables
 	// retrying).

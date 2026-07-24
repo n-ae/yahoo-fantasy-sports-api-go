@@ -21,8 +21,11 @@ This SDK provides complete feature parity with the Python `yahoofantasy` package
 ## Installation
 
 ```bash
-go get github.com/n-ae/yahoo-fantasy-sports-api-go
+go get github.com/n-ae/yahoo-fantasy-sports-api-go/v2
 ```
+
+> Upgrading from v1? See [docs/migrating-to-v2.md](docs/migrating-to-v2.md).
+> The `v1.x` line is maintained on the `v1-maintenance` branch.
 
 ## Quick Start
 
@@ -54,7 +57,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/n-ae/yahoo-fantasy-sports-api-go/pkg/yahoo"
+    "github.com/n-ae/yahoo-fantasy-sports-api-go/v2/pkg/yahoo"
     _ "github.com/mattn/go-sqlite3"
 )
 
@@ -65,7 +68,7 @@ func main() {
     }
     defer db.Close()
 
-    client, err := yahoo.NewClientWithOptions(
+    client, err := yahoo.NewClient(
         yahoo.WithCredentials("", ""), // or omit and rely on FromEnv()
         yahoo.FromEnv(),               // reads YAHOO_ACCESS_TOKEN etc.
         yahoo.WithSQLiteCache(db),     // optional; omit for no caching
@@ -92,12 +95,12 @@ func main() {
 
 ## Configuration
 
-Construct the client with `NewClientWithOptions`, which validates configuration
+Construct the client with `NewClient`, which validates configuration
 and returns an error. All dependencies are injectable and the database is
 optional:
 
 ```go
-client, err := yahoo.NewClientWithOptions(
+client, err := yahoo.NewClient(
     yahoo.WithCredentials(consumerKey, consumerSecret),
     yahoo.WithTokens(accessToken, refreshToken),
     yahoo.WithHTTPClient(httpClient),   // inject *http.Client or a mock
@@ -127,7 +130,7 @@ func (s *myStore) Save(ctx context.Context, t yahoo.Token) error {
 }
 
 tok := myStore.Load() // your load
-client, _ := yahoo.NewClientWithOptions(
+client, _ := yahoo.NewClient(
     yahoo.WithCredentials(key, secret),
     yahoo.WithTokens(tok.AccessToken, tok.RefreshToken),
     yahoo.WithTokenStore(&myStore{}),
@@ -137,10 +140,6 @@ client, _ := yahoo.NewClientWithOptions(
 `Save` is best-effort: a failure is logged via the `Logger` but does not fail the
 request (the rotated token is valid in memory). Retry behavior can be tuned with
 `WithRetryPolicy(yahoo.RetryPolicy{MaxRetries: 5, BaseBackoff: time.Second, MaxBackoff: 30*time.Second})`.
-
-> **Deprecation:** `NewClient(apiKey, apiSecret, db)` is deprecated in favor of
-> `NewClientWithOptions` and is scheduled for removal in v2
-> (see [docs/v2-roadmap.md](docs/v2-roadmap.md)). It still works unchanged.
 
 ## API Reference
 
@@ -256,10 +255,11 @@ teamKey := "449.l.12345.t.1"
 roster, err := client.GetTeamRoster(ctx, teamKey)
 
 for _, player := range roster {
-    fmt.Printf("%s - %s (%s)\n",
+    fmt.Printf("%s - %v (slot %s, starting=%t)\n",
         player.PlayerKey,
-        player.Position,
-        player.SelectedPos)
+        player.EligiblePositions,
+        player.SelectedPos,
+        player.IsStarting)
 }
 ```
 
@@ -587,21 +587,22 @@ for _, w := range player.DecodeWarnings {
 
 ## Versioning
 
-This module follows [Semantic Versioning](https://semver.org) within the `v1` line:
+This module follows [Semantic Versioning](https://semver.org). The current major
+line is `v2` (module path `.../v2`):
 
-- **Patch** (`v1.x.Y`) — bug fixes and internal changes with no API impact.
-- **Minor** (`v1.X.0`) — new backward-compatible exported API.
+- **Patch** (`v2.x.Y`) — bug fixes and internal changes with no API impact.
+- **Minor** (`v2.X.0`) — new backward-compatible exported API.
 - **Major** — reserved for breaking changes to the public `pkg/yahoo` API.
 
 Pin an exact version and use `go.sum` for reproducible builds:
 
 ```bash
-go get github.com/n-ae/yahoo-fantasy-sports-api-go@v1.5.0
+go get github.com/n-ae/yahoo-fantasy-sports-api-go/v2@v2.0.0
 ```
 
-Retracted versions (see `go.mod`) must not be used: `v1.4.9`,
-`v1.4.9-extension.1`, and the abandoned `v0.2.x` line. Prefer the latest
-`v1` tag.
+The `v1.x` line is maintained on the `v1-maintenance` branch; its retractions
+(`v1.4.9`, `v1.4.9-extension.1`, the abandoned `v0.2.x` line) live in that
+branch's `go.mod`.
 
 ## Contributing
 

@@ -54,7 +54,7 @@ func clientForRefresh(t *testing.T, api, token *httptest.Server, opts ...Option)
 		WithTokenURL(token.URL),
 		WithHTTPClient(&http.Client{}),
 	}
-	c, err := NewClientWithOptions(append(base, opts...)...)
+	c, err := NewClient(append(base, opts...)...)
 	if err != nil {
 		t.Fatalf("construction failed: %v", err)
 	}

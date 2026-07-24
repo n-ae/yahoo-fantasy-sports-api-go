@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/n-ae/yahoo-fantasy-sports-api-go/pkg/yahoo"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/n-ae/yahoo-fantasy-sports-api-go/v2/pkg/yahoo"
 )
 
 func main() {
@@ -18,7 +18,10 @@ func main() {
 	}
 	defer db.Close()
 
-	client := yahoo.NewClient("", "", db)
+	client, err := yahoo.NewClient(yahoo.FromEnv(), yahoo.WithSQLiteCache(db))
+	if err != nil {
+		log.Fatal(err)
+	}
 	ctx := context.Background()
 
 	fmt.Println("=== Yahoo Fantasy API - Comprehensive Example ===")

@@ -9,24 +9,24 @@ import (
 )
 
 type TradeService struct {
-	db            *sql.DB
-	evaluator     *EvaluationService
+	db              *sql.DB
+	evaluator       *EvaluationService
 	analysisService *AnalysisService
 }
 
 type TradeSuggestion struct {
-	ID               int
-	LeagueID         int
-	TeamAID          int
-	TeamAName        string
-	TeamAGives       []TradePlayer
-	TeamBID          int
-	TeamBName        string
-	TeamBGives       []TradePlayer
-	FairnessScore    float64
-	TeamABenefit     string
-	TeamBBenefit     string
-	Recommendation   string
+	ID             int
+	LeagueID       int
+	TeamAID        int
+	TeamAName      string
+	TeamAGives     []TradePlayer
+	TeamBID        int
+	TeamBName      string
+	TeamBGives     []TradePlayer
+	FairnessScore  float64
+	TeamABenefit   string
+	TeamBBenefit   string
+	Recommendation string
 }
 
 type TradePlayer struct {

@@ -5,25 +5,25 @@ type Standings struct {
 }
 
 type StandingsTeam struct {
-	TeamKey        string         `json:"team_key"`
-	TeamID         string         `json:"team_id"`
-	Name           string         `json:"name"`
-	TeamStandings  TeamStandings  `json:"team_standings"`
+	TeamKey         string        `json:"team_key"`
+	TeamID          string        `json:"team_id"`
+	Name            string        `json:"name"`
+	TeamStandings   TeamStandings `json:"team_standings"`
 	ManagerNickname string        `json:"manager_nickname,omitempty"`
-	Managers       []Manager      `json:"managers,omitempty"`
+	Managers        []Manager     `json:"managers,omitempty"`
 	// DecodeWarnings lists non-fatal numeric parse failures encountered while
 	// converting this standings row.
 	DecodeWarnings []DecodeWarning `json:"decode_warnings,omitempty"`
 }
 
 type TeamStandings struct {
-	Rank            int            `json:"rank"`
-	PlayoffSeed     int            `json:"playoff_seed,omitempty"`
-	OutcomeTotals   OutcomeTotals  `json:"outcome_totals"`
-	PointsFor       float64        `json:"points_for"`
-	PointsAgainst   float64        `json:"points_against"`
-	GamesBack       string         `json:"games_back,omitempty"`
-	Streak          *Streak        `json:"streak,omitempty"`
+	Rank          int           `json:"rank"`
+	PlayoffSeed   int           `json:"playoff_seed,omitempty"`
+	OutcomeTotals OutcomeTotals `json:"outcome_totals"`
+	PointsFor     float64       `json:"points_for"`
+	PointsAgainst float64       `json:"points_against"`
+	GamesBack     string        `json:"games_back,omitempty"`
+	Streak        *Streak       `json:"streak,omitempty"`
 }
 
 type OutcomeTotals struct {
@@ -39,13 +39,13 @@ type Streak struct {
 }
 
 type Manager struct {
-	ManagerID        string `json:"manager_id"`
-	Nickname         string `json:"nickname"`
-	GUID             string `json:"guid"`
-	IsCommissioner   bool   `json:"is_commissioner"`
-	IsCurrentLogin   bool   `json:"is_current_login"`
-	Email            string `json:"email,omitempty"`
-	ImageURL         string `json:"image_url,omitempty"`
+	ManagerID      string `json:"manager_id"`
+	Nickname       string `json:"nickname"`
+	GUID           string `json:"guid"`
+	IsCommissioner bool   `json:"is_commissioner"`
+	IsCurrentLogin bool   `json:"is_current_login"`
+	Email          string `json:"email,omitempty"`
+	ImageURL       string `json:"image_url,omitempty"`
 }
 
 type yahooStandingsResponse struct {

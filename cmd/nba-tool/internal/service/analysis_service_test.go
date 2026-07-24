@@ -158,11 +158,11 @@ func TestComplementaryScoreCalculation(t *testing.T) {
 
 func TestPositionNeedAnalysis(t *testing.T) {
 	tests := []struct {
-		name             string
-		positionCounts   map[string]int
-		expectedNeeds    []string
-		shouldNeedPG     bool
-		shouldNeedC      bool
+		name           string
+		positionCounts map[string]int
+		expectedNeeds  []string
+		shouldNeedPG   bool
+		shouldNeedC    bool
 	}{
 		{
 			name: "Thin at center",

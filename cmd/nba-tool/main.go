@@ -13,9 +13,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/n-ae/yahoo-fantasy-sports-api-go/pkg/repository"
-	"github.com/n-ae/yahoo-fantasy-sports-api-go/pkg/service"
-	"github.com/n-ae/yahoo-fantasy-sports-api-go/pkg/yahoo"
+	"github.com/n-ae/yahoo-fantasy-sports-api-go/v2/cmd/nba-tool/internal/repository"
+	"github.com/n-ae/yahoo-fantasy-sports-api-go/v2/cmd/nba-tool/internal/service"
+	"github.com/n-ae/yahoo-fantasy-sports-api-go/v2/pkg/yahoo"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -37,7 +37,7 @@ func main() {
 	}
 	defer db.Close()
 
-	client, err := yahoo.NewClientWithOptions(
+	client, err := yahoo.NewClient(
 		yahoo.FromEnv(),           // YAHOO_ACCESS_TOKEN, YAHOO_CONSUMER_KEY, ...
 		yahoo.WithSQLiteCache(db), // reuse the app DB for the response cache
 	)

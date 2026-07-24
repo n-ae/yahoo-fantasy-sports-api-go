@@ -5,10 +5,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
-	"github.com/n-ae/yahoo-fantasy-sports-api-go/pkg/repository"
-	"github.com/n-ae/yahoo-fantasy-sports-api-go/pkg/yahoo"
+	"github.com/n-ae/yahoo-fantasy-sports-api-go/v2/cmd/nba-tool/internal/repository"
+	"github.com/n-ae/yahoo-fantasy-sports-api-go/v2/pkg/yahoo"
 )
 
 // DefaultScoringSettings is the fallback fantasy scoring model used when a
@@ -150,13 +151,20 @@ func (s *LeagueService) SyncTeamsAndRosters(ctx context.Context, leagueID int, y
 		for _, rosterEntry := range roster {
 			playerID, err := s.rosterRepo.GetPlayerIDByYahooKey(ctx, rosterEntry.PlayerKey)
 			if err != nil {
+				// Surface the partial import instead of silently dropping the
+				// player (assessment M5 10.5).
+				log.Printf("warning: skipping roster player %s on team %s: %v", rosterEntry.PlayerKey, yahooTeam.TeamName, err)
 				continue
 			}
 
+			rosterPos := ""
+			if len(rosterEntry.EligiblePositions) > 0 {
+				rosterPos = rosterEntry.EligiblePositions[0]
+			}
 			entry := &repository.RosterEntry{
 				TeamID:           team.ID,
 				PlayerID:         playerID,
-				RosterPosition:   rosterEntry.Position,
+				RosterPosition:   rosterPos,
 				SelectedPosition: rosterEntry.SelectedPos,
 				IsStarting:       rosterEntry.IsStarting,
 			}

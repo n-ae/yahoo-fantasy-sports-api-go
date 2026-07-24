@@ -9,11 +9,11 @@ func TestCalculateFairnessScore(t *testing.T) {
 	service := &EvaluationService{}
 
 	tests := []struct {
-		name           string
-		teamAPlayers   []PlayerProjection
-		teamBPlayers   []PlayerProjection
-		expectedScore  float64
-		shouldBeFair   bool
+		name          string
+		teamAPlayers  []PlayerProjection
+		teamBPlayers  []PlayerProjection
+		expectedScore float64
+		shouldBeFair  bool
 	}{
 		{
 			name: "Perfectly balanced trade",
@@ -151,13 +151,13 @@ func TestSimulateTrade(t *testing.T) {
 	service := &EvaluationService{}
 
 	current := TeamCategoryTotals{
-		PTS:   100.0,
-		REB:   50.0,
-		AST:   75.0,
-		STL:   10.0,
-		BLK:   8.0,
-		TO:    15.0,
-		TPM:   12.0,
+		PTS: 100.0,
+		REB: 50.0,
+		AST: 75.0,
+		STL: 10.0,
+		BLK: 8.0,
+		TO:  15.0,
+		TPM: 12.0,
 	}
 
 	playersOut := []PlayerProjection{

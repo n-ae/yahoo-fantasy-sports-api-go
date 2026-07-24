@@ -125,11 +125,11 @@ func TestIsGoodFit(t *testing.T) {
 	service := &TradeService{}
 
 	tests := []struct {
-		name         string
-		playerA      RosterPlayer
-		playerB      RosterPlayer
-		expectedFit  bool
-		description  string
+		name        string
+		playerA     RosterPlayer
+		playerB     RosterPlayer
+		expectedFit bool
+		description string
 	}{
 		{
 			name:        "Nearly equal value (within 15%)",
@@ -193,9 +193,9 @@ func TestFormatBenefit(t *testing.T) {
 	service := &TradeService{}
 
 	tests := []struct {
-		name        string
-		impact      TradeImpact
-		shouldHave  []string
+		name       string
+		impact     TradeImpact
+		shouldHave []string
 	}{
 		{
 			name: "Multiple improvements with position benefit",
@@ -247,32 +247,32 @@ func TestFormatBenefit(t *testing.T) {
 
 func TestTradeValueCalculation(t *testing.T) {
 	tests := []struct {
-		name           string
-		playerAValue   float64
-		playerBValue   float64
-		expectedDelta  float64
-		expectedFair   bool
+		name          string
+		playerAValue  float64
+		playerBValue  float64
+		expectedDelta float64
+		expectedFair  bool
 	}{
 		{
-			name:           "Balanced trade",
-			playerAValue:   45.0,
-			playerBValue:   45.0,
-			expectedDelta:  0.0,
-			expectedFair:   true,
+			name:          "Balanced trade",
+			playerAValue:  45.0,
+			playerBValue:  45.0,
+			expectedDelta: 0.0,
+			expectedFair:  true,
 		},
 		{
-			name:           "Slight advantage to team A",
-			playerAValue:   40.0,
-			playerBValue:   45.0,
-			expectedDelta:  5.0,
-			expectedFair:   true,
+			name:          "Slight advantage to team A",
+			playerAValue:  40.0,
+			playerBValue:  45.0,
+			expectedDelta: 5.0,
+			expectedFair:  true,
 		},
 		{
-			name:           "Large advantage to team A",
-			playerAValue:   30.0,
-			playerBValue:   50.0,
-			expectedDelta:  20.0,
-			expectedFair:   false,
+			name:          "Large advantage to team A",
+			playerAValue:  30.0,
+			playerBValue:  50.0,
+			expectedDelta: 20.0,
+			expectedFair:  false,
 		},
 	}
 

@@ -20,15 +20,12 @@ type HTTPDoer interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
-// Cache is a pluggable response cache. The bundled *APICache (SQLite) satisfies
-// it; callers may supply their own (in-memory, Redis, etc.).
-//
-// Note: this v1 signature mirrors the existing SQLite cache. A context-aware,
-// []byte-based signature is planned for v2 (see docs/adr/0003-options-constructor.md).
+// Cache is a pluggable response cache. Enable the bundled SQLite implementation
+// with WithSQLiteCache, or supply your own (in-memory, Redis, etc.) with
+// WithCache. Get reports ok=false for a miss or expired entry.
 type Cache interface {
-	Get(key string) (string, error)
-	Set(key string, value interface{}, ttl time.Duration) error
-	Delete(key string) error
+	Get(ctx context.Context, key string) (value []byte, ok bool, err error)
+	Set(ctx context.Context, key string, value []byte, ttl time.Duration) error
 }
 
 // Logger receives advisory diagnostic messages (e.g. retry notices). The
@@ -86,7 +83,7 @@ func defaultConfig() config {
 	}
 }
 
-// Option configures a Client built with NewClientWithOptions. Explicit options
+// Option configures a Client built with NewClient. Explicit options
 // take precedence over FromEnv regardless of order.
 type Option func(*config) error
 
@@ -160,7 +157,7 @@ func WithSQLiteCache(db *sql.DB) Option {
 		if db == nil {
 			return fmt.Errorf("yahoo: WithSQLiteCache requires a non-nil *sql.DB")
 		}
-		c.cache = &APICache{db: db}
+		c.cache = &apiCache{db: db}
 		c.cacheEnabled = true
 		return nil
 	}
@@ -231,11 +228,9 @@ func FromEnv() Option {
 	}
 }
 
-// NewClientWithOptions builds a Client from functional options, validating the
-// resulting configuration and returning an error for invalid combinations.
-//
-// This is the preferred constructor; the positional NewClient is deprecated.
-func NewClientWithOptions(opts ...Option) (*Client, error) {
+// NewClient builds a Client from functional options, validating the resulting
+// configuration and returning an error for invalid combinations.
+func NewClient(opts ...Option) (*Client, error) {
 	cfg := defaultConfig()
 	for _, opt := range opts {
 		if err := opt(&cfg); err != nil {

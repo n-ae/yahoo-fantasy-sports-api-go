@@ -131,12 +131,12 @@ func (sh *StatHelper) parseCompoundStat(statID int) (made int, attempted int, er
 	if !ok {
 		return 0, 0, fmt.Errorf("stat ID %d not found", statID)
 	}
-	
+
 	// Parse compound format "made/attempted"
 	parts := []rune(value)
 	var madeStr, attemptedStr string
 	slashFound := false
-	
+
 	for _, ch := range parts {
 		if ch == '/' {
 			slashFound = true
@@ -148,21 +148,21 @@ func (sh *StatHelper) parseCompoundStat(statID int) (made int, attempted int, er
 			attemptedStr += string(ch)
 		}
 	}
-	
+
 	if !slashFound || madeStr == "" || attemptedStr == "" {
 		return 0, 0, fmt.Errorf("invalid compound stat format: %s", value)
 	}
-	
+
 	made, err = strconv.Atoi(madeStr)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to parse made value: %w", err)
 	}
-	
+
 	attempted, err = strconv.Atoi(attemptedStr)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to parse attempted value: %w", err)
 	}
-	
+
 	return made, attempted, nil
 }
 
@@ -230,53 +230,53 @@ func (sh *StatHelper) GetShootingStats() (fgm, fga, ftm, fta, tpm, tpa int, err 
 }
 
 const (
-	StatIDGamesPlayed       = 0
-	StatIDGamesStarted      = 1
-	StatIDMinutesPlayed     = 2
-	StatIDFGA               = 3
-	StatIDFGM               = 4
-	StatIDFGPercent         = 5
-	StatIDFTA               = 6
-	StatIDFTM               = 7
-	StatIDFTPercent         = 8
-	StatID3PA               = 9
-	StatID3PM               = 10
-	StatID3PPercent         = 11
-	StatIDPoints            = 12
-	StatIDOffensiveRebounds = 13
-	StatIDDefensiveRebounds = 14
-	StatIDRebounds          = 15
-	StatIDAssists           = 16
-	StatIDSteals            = 17
-	StatIDBlocks            = 18
-	StatIDTurnovers         = 19
+	StatIDGamesPlayed         = 0
+	StatIDGamesStarted        = 1
+	StatIDMinutesPlayed       = 2
+	StatIDFGA                 = 3
+	StatIDFGM                 = 4
+	StatIDFGPercent           = 5
+	StatIDFTA                 = 6
+	StatIDFTM                 = 7
+	StatIDFTPercent           = 8
+	StatID3PA                 = 9
+	StatID3PM                 = 10
+	StatID3PPercent           = 11
+	StatIDPoints              = 12
+	StatIDOffensiveRebounds   = 13
+	StatIDDefensiveRebounds   = 14
+	StatIDRebounds            = 15
+	StatIDAssists             = 16
+	StatIDSteals              = 17
+	StatIDBlocks              = 18
+	StatIDTurnovers           = 19
 	StatIDAssistTurnoverRatio = 20
-	StatIDPersonalFouls     = 21
-	
+	StatIDPersonalFouls       = 21
+
 	// Alternate compound stat IDs (some leagues return these)
-	StatIDFGMFGACompound = 9004003  // FGM/FGA as compound "made/attempted"
-	StatIDFTMFTACompound = 9007006  // FTM/FTA as compound "made/attempted"
-	StatID3PM3PACompound = 9010009  // 3PM/3PA as compound "made/attempted"
+	StatIDFGMFGACompound = 9004003 // FGM/FGA as compound "made/attempted"
+	StatIDFTMFTACompound = 9007006 // FTM/FTA as compound "made/attempted"
+	StatID3PM3PACompound = 9010009 // 3PM/3PA as compound "made/attempted"
 )
 
 type NBAStats struct {
-	GamesPlayed       int
-	FGM               int
-	FGA               int
-	FGPercent         float64
-	FTM               int
-	FTA               int
-	FTPercent         float64
-	ThreePointsMade   int
+	GamesPlayed        int
+	FGM                int
+	FGA                int
+	FGPercent          float64
+	FTM                int
+	FTA                int
+	FTPercent          float64
+	ThreePointsMade    int
 	ThreePointsAttempt int
-	ThreePPercent     float64
-	Points            int
-	Rebounds          int
-	OffensiveRebounds int
-	Assists           int
-	Steals            int
-	Blocks            int
-	Turnovers         int
+	ThreePPercent      float64
+	Points             int
+	Rebounds           int
+	OffensiveRebounds  int
+	Assists            int
+	Steals             int
+	Blocks             int
+	Turnovers          int
 }
 
 func ParseNBAStats(stats []Stat) (*NBAStats, error) {

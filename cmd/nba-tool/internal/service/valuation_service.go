@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"time"
 )
@@ -30,26 +31,26 @@ func currentNBASeason(t time.Time) string {
 }
 
 type PlayerValue struct {
-	PlayerID         int
-	LeagueID         int
-	FPG              float64
-	ZScore           float64
-	PositionRank     int
-	OverallRank      int
+	PlayerID           int
+	LeagueID           int
+	FPG                float64
+	ZScore             float64
+	PositionRank       int
+	OverallRank        int
 	ScarcityMultiplier float64
-	Projections      CategoryProjections
+	Projections        CategoryProjections
 }
 
 type CategoryProjections struct {
-	PTS    float64
-	REB    float64
-	AST    float64
-	STL    float64
-	BLK    float64
-	TO     float64
-	FGPct  float64
-	FTPct  float64
-	TPM    float64
+	PTS   float64
+	REB   float64
+	AST   float64
+	STL   float64
+	BLK   float64
+	TO    float64
+	FGPct float64
+	FTPct float64
+	TPM   float64
 }
 
 type ScoringSettings struct {
@@ -107,16 +108,16 @@ func (s *ValuationService) CalculateAllPlayerValues(ctx context.Context, leagueI
 }
 
 type PlayerStats struct {
-	PlayerID         int
-	PrimaryPosition  string
-	PointsPerGame    float64
-	ReboundsPerGame  float64
-	AssistsPerGame   float64
-	StealsPerGame    float64
-	BlocksPerGame    float64
-	TurnoversPerGame float64
-	FGPercentage     float64
-	FTPercentage     float64
+	PlayerID          int
+	PrimaryPosition   string
+	PointsPerGame     float64
+	ReboundsPerGame   float64
+	AssistsPerGame    float64
+	StealsPerGame     float64
+	BlocksPerGame     float64
+	TurnoversPerGame  float64
+	FGPercentage      float64
+	FTPercentage      float64
 	ThreePointersMade float64
 }
 
@@ -322,8 +323,15 @@ func (s *ValuationService) getPlayerPosition(ctx context.Context, playerID int) 
 		WHERE pp.player_id = ? AND pp.is_primary = 1
 	`
 	var position string
-	s.db.QueryRowContext(ctx, query, playerID).Scan(&position)
-	if position == "" {
+	err := s.db.QueryRowContext(ctx, query, playerID).Scan(&position)
+	if err == sql.ErrNoRows {
+		// Genuinely no primary position on record; fall back to a forward.
+		return "F"
+	}
+	if err != nil {
+		// A real query error is not "no position" — surface it instead of
+		// silently mislabeling every failure as "F" (assessment M5 10.9).
+		log.Printf("warning: player %d position lookup failed: %v", playerID, err)
 		return "F"
 	}
 	return position

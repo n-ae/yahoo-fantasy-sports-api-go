@@ -8,29 +8,29 @@ type Week struct {
 }
 
 type Matchup struct {
-	Week              int           `json:"week"`
-	WeekStart         string        `json:"week_start"`
-	WeekEnd           string        `json:"week_end"`
-	Status            string        `json:"status"`
-	IsPlayoffs        bool          `json:"is_playoffs"`
-	IsConsolation     bool          `json:"is_consolation"`
-	IsTied            bool          `json:"is_tied"`
-	WinnerTeamKey     string        `json:"winner_team_key,omitempty"`
-	Teams             []MatchupTeam `json:"teams"`
+	Week          int           `json:"week"`
+	WeekStart     string        `json:"week_start"`
+	WeekEnd       string        `json:"week_end"`
+	Status        string        `json:"status"`
+	IsPlayoffs    bool          `json:"is_playoffs"`
+	IsConsolation bool          `json:"is_consolation"`
+	IsTied        bool          `json:"is_tied"`
+	WinnerTeamKey string        `json:"winner_team_key,omitempty"`
+	Teams         []MatchupTeam `json:"teams"`
 	// DecodeWarnings lists non-fatal numeric parse failures for this matchup,
 	// including warnings bubbled up from its teams.
-	DecodeWarnings    []DecodeWarning `json:"decode_warnings,omitempty"`
+	DecodeWarnings []DecodeWarning `json:"decode_warnings,omitempty"`
 }
 
 type MatchupTeam struct {
-	TeamKey            string        `json:"team_key"`
-	TeamID             string        `json:"team_id"`
-	Name               string        `json:"name"`
-	Points             float64       `json:"points"`
-	ProjectedPoints    float64       `json:"projected_points"`
-	IsWinner           bool          `json:"is_winner"`
-	Stats              []Stat        `json:"stats,omitempty"`
-	TeamPoints         TeamPoints    `json:"team_points"`
+	TeamKey             string              `json:"team_key"`
+	TeamID              string              `json:"team_id"`
+	Name                string              `json:"name"`
+	Points              float64             `json:"points"`
+	ProjectedPoints     float64             `json:"projected_points"`
+	IsWinner            bool                `json:"is_winner"`
+	Stats               []Stat              `json:"stats,omitempty"`
+	TeamPoints          TeamPoints          `json:"team_points"`
 	TeamProjectedPoints TeamProjectedPoints `json:"team_projected_points"`
 }
 
@@ -60,21 +60,21 @@ type yahooScoreboardResponse struct {
 }
 
 type yahooMatchupData struct {
-	Week      string `json:"week"`
-	WeekStart string `json:"week_start"`
-	WeekEnd   string `json:"week_end"`
-	Status    string `json:"status"`
-	IsPlayoffs string `json:"is_playoffs"`
+	Week          string `json:"week"`
+	WeekStart     string `json:"week_start"`
+	WeekEnd       string `json:"week_end"`
+	Status        string `json:"status"`
+	IsPlayoffs    string `json:"is_playoffs"`
 	IsConsolation string `json:"is_consolation"`
-	IsTied    string `json:"is_tied"`
+	IsTied        string `json:"is_tied"`
 	WinnerTeamKey string `json:"winner_team_key,omitempty"`
-	Teams     struct {
+	Teams         struct {
 		Team []struct {
-			TeamKey  string `json:"team_key"`
-			TeamID   string `json:"team_id"`
-			Name     string `json:"name"`
+			TeamKey        string `json:"team_key"`
+			TeamID         string `json:"team_id"`
+			Name           string `json:"name"`
 			WinProbability string `json:"win_probability,omitempty"`
-			TeamPoints struct {
+			TeamPoints     struct {
 				CoverageType string `json:"coverage_type"`
 				Week         string `json:"week,omitempty"`
 				Total        string `json:"total"`

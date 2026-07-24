@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.0] - 2026-07-24
+
+Breaking release completing the [v2 roadmap](docs/v2-roadmap.md). See [docs/migrating-to-v2.md](docs/migrating-to-v2.md).
+
+### Breaking
+- **Module path** is now `github.com/n-ae/yahoo-fantasy-sports-api-go/v2`; import `.../v2/pkg/yahoo`.
+- **Constructor**: the positional `NewClient(apiKey, apiSecret, db)` is removed. `NewClient` is now the validating functional-options constructor (formerly `NewClientWithOptions`).
+- **Cache interface** is context-aware and `[]byte`-based: `Get(ctx, key) ([]byte, bool, error)` / `Set(ctx, key, []byte, ttl)`. A miss is `ok == false`, not an error. `APICache` is no longer exported (use `WithSQLiteCache` or the `Cache` interface).
+- **Roster.Position** (deprecated single position) is removed; use `EligiblePositions`.
+- **pkg/service and pkg/repository are removed** from the public API. The NBA application now lives under `cmd/nba-tool/internal/` and is not importable.
+
+### Fixed
+- Completed the remaining assessment M5 items in the relocated app: `SyncTeamsAndRosters` now logs skipped roster players instead of silently dropping them, and `getPlayerPosition` no longer masks real query errors as position `"F"`.
+
+### Changed
+- The whole tree is now gofmt-clean.
+- The `v1.x` line continues on the `v1-maintenance` branch.
+
 ## [1.9.1] - 2026-07-24
 
 ### Documentation

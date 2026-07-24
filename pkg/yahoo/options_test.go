@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestNewClientWithOptionsValid(t *testing.T) {
+func TestNewClientValid(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer tok" {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -18,7 +18,7 @@ func TestNewClientWithOptionsValid(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := NewClientWithOptions(
+	c, err := NewClient(
 		WithTokens("tok", ""),
 		WithBaseURL(srv.URL),
 		WithHTTPClient(srv.Client()),
@@ -35,7 +35,7 @@ func TestNewClientWithOptionsValid(t *testing.T) {
 	}
 }
 
-func TestNewClientWithOptionsValidation(t *testing.T) {
+func TestNewClientValidation(t *testing.T) {
 	cases := map[string]Option{
 		"nil http client": WithHTTPClient(nil),
 		"nil cache":       WithCache(nil),
@@ -44,7 +44,7 @@ func TestNewClientWithOptionsValidation(t *testing.T) {
 		"nil logger":      WithLogger(nil),
 	}
 	for name, opt := range cases {
-		if _, err := NewClientWithOptions(opt); err == nil {
+		if _, err := NewClient(opt); err == nil {
 			t.Errorf("%s: expected construction error, got nil", name)
 		}
 	}
@@ -52,7 +52,7 @@ func TestNewClientWithOptionsValidation(t *testing.T) {
 
 func TestCacheEnabledWithoutCacheErrors(t *testing.T) {
 	t.Setenv("YAHOO_ENABLE_CACHE", "true")
-	if _, err := NewClientWithOptions(FromEnv()); err == nil {
+	if _, err := NewClient(FromEnv()); err == nil {
 		t.Error("expected error when caching enabled but no cache configured")
 	}
 }
@@ -61,7 +61,7 @@ func TestFromEnvFillsGapsExplicitWins(t *testing.T) {
 	t.Setenv("YAHOO_CONSUMER_KEY", "env-key")
 	t.Setenv("YAHOO_ACCESS_TOKEN", "env-token")
 
-	c, err := NewClientWithOptions(
+	c, err := NewClient(
 		WithCredentials("explicit-key", "explicit-secret"),
 		FromEnv(),
 	)
@@ -96,7 +96,7 @@ func TestLoggerObservesRetry(t *testing.T) {
 	defer srv.Close()
 
 	logger := &capturingLogger{}
-	c, err := NewClientWithOptions(
+	c, err := NewClient(
 		WithTokens("tok", ""),
 		WithBaseURL(srv.URL),
 		WithHTTPClient(srv.Client()),

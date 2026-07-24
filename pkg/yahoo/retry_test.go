@@ -40,7 +40,7 @@ func TestIsRetryableStatus(t *testing.T) {
 }
 
 func newTokenClient(baseURL string) *Client {
-	c := NewClient("k", "s", nil)
+	c, _ := NewClient(WithCredentials("k", "s"))
 	c.baseURL = baseURL
 	c.accessToken = "token"
 	return c
@@ -120,13 +120,13 @@ func TestRetryPolicyValidation(t *testing.T) {
 		"max below base":    {MaxRetries: 1, BaseBackoff: 2 * time.Second, MaxBackoff: time.Second},
 	}
 	for name, p := range bad {
-		if _, err := NewClientWithOptions(WithRetryPolicy(p)); err == nil {
+		if _, err := NewClient(WithRetryPolicy(p)); err == nil {
 			t.Errorf("%s: expected validation error, got nil", name)
 		}
 	}
 
 	good := RetryPolicy{MaxRetries: 1, BaseBackoff: time.Millisecond, MaxBackoff: 2 * time.Millisecond}
-	if _, err := NewClientWithOptions(WithRetryPolicy(good)); err != nil {
+	if _, err := NewClient(WithRetryPolicy(good)); err != nil {
 		t.Errorf("valid policy rejected: %v", err)
 	}
 }
@@ -140,7 +140,7 @@ func TestWithRetryPolicyDisablesRetries(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := NewClientWithOptions(
+	c, err := NewClient(
 		WithTokens("tok", ""),
 		WithBaseURL(srv.URL),
 		WithHTTPClient(srv.Client()),

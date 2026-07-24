@@ -39,7 +39,7 @@ func (c *Client) currentAccessToken() string {
 	return c.accessToken
 }
 
-type APICache struct {
+type apiCache struct {
 	db *sql.DB
 }
 
@@ -54,14 +54,14 @@ type League struct {
 }
 
 type Team struct {
-	YahooTeamID   string
-	YahooTeamKey  string
-	TeamName      string
-	ManagerName   string
-	Wins          int
-	Losses        int
-	Ties          int
-	Rank          int
+	YahooTeamID  string
+	YahooTeamKey string
+	TeamName     string
+	ManagerName  string
+	Wins         int
+	Losses       int
+	Ties         int
+	Rank         int
 }
 
 // SlotState classifies the lineup slot a player currently occupies.
@@ -74,12 +74,9 @@ const (
 )
 
 type Roster struct {
-	TeamID    string
-	PlayerID  string
-	PlayerKey string
-	// Position is the player's primary eligible position, retained for
-	// backward compatibility. Prefer EligiblePositions for lineup logic.
-	Position          string
+	TeamID            string
+	PlayerID          string
+	PlayerKey         string
 	EligiblePositions []string
 	SelectedPos       string
 	SlotState         SlotState
@@ -110,13 +107,13 @@ type yahooLeaguesResponse struct {
 					Game []struct {
 						Leagues []struct {
 							League struct {
-								League_Key  string `json:"league_key"`
-								League_ID   string `json:"league_id"`
-								Name        string `json:"name"`
-								Season      string `json:"season"`
+								League_Key   string `json:"league_key"`
+								League_ID    string `json:"league_id"`
+								Name         string `json:"name"`
+								Season       string `json:"season"`
 								Scoring_Type string `json:"scoring_type"`
-								Num_Teams   int    `json:"num_teams"`
-								Current_Week int   `json:"current_week"`
+								Num_Teams    int    `json:"num_teams"`
+								Current_Week int    `json:"current_week"`
 							} `json:"league"`
 						} `json:"leagues"`
 					} `json:"game"`
@@ -131,10 +128,10 @@ type yahooTeamsResponse struct {
 		League struct {
 			Teams []struct {
 				Team struct {
-					Team_Key    string `json:"team_key"`
-					Team_ID     string `json:"team_id"`
-					Name        string `json:"name"`
-					Managers    []struct {
+					Team_Key string `json:"team_key"`
+					Team_ID  string `json:"team_id"`
+					Name     string `json:"name"`
+					Managers []struct {
 						Manager struct {
 							Nickname string `json:"nickname"`
 						} `json:"manager"`
@@ -159,8 +156,8 @@ type yahooRosterResponse struct {
 			Roster struct {
 				Players []struct {
 					Player struct {
-						Player_Key        string `json:"player_key"`
-						Player_ID         string `json:"player_id"`
+						Player_Key         string `json:"player_key"`
+						Player_ID          string `json:"player_id"`
 						Eligible_Positions []struct {
 							Position string `json:"position"`
 						} `json:"eligible_positions"`
@@ -203,52 +200,11 @@ func readLimited(r io.Reader) ([]byte, error) {
 	return io.ReadAll(io.LimitReader(r, maxResponseBody))
 }
 
-// NewClient constructs a Client from a consumer key/secret and a SQLite
-// database, falling back to environment variables for unset values.
-//
-// Deprecated: use NewClientWithOptions, which validates configuration, returns
-// an error, makes the database optional, and injects dependencies:
-//
-//	client, err := yahoo.NewClientWithOptions(
-//	    yahoo.WithCredentials(key, secret),
-//	    yahoo.WithTokens(access, refresh),
-//	    yahoo.WithSQLiteCache(db),
-//	)
-//
-// This positional constructor is retained for backward compatibility and is
-// scheduled for removal in v2. See docs/v2-roadmap.md.
-func NewClient(apiKey, apiSecret string, db *sql.DB) *Client {
-	// Preserve legacy behavior exactly: env fallback for all fields, and a
-	// SQLite cache backed by db (which may be nil; the cache guards against it).
-	c, _ := NewClientWithOptions(
-		WithCredentials(apiKey, apiSecret),
-		FromEnv(),
-		withLegacySQLiteCache(db),
-	)
-	return c
-}
-
-// withLegacySQLiteCache mirrors the pre-options behavior of always attaching an
-// *APICache (even with a nil db). Unlike the public WithSQLiteCache, it does not
-// reject a nil database and does not force caching on; FromEnv controls
-// cacheEnabled. Internal use only, for the deprecated NewClient.
-func withLegacySQLiteCache(db *sql.DB) Option {
-	return func(cfg *config) error {
-		cfg.cache = &APICache{db: db}
-		return nil
-	}
-}
-
 func (c *Client) GetUserLeagues(ctx context.Context, gameKey string) ([]League, error) {
 	cacheKey := fmt.Sprintf("user:leagues:%s", gameKey)
 
-	if c.cacheEnabled {
-		if cached, err := c.cache.Get(cacheKey); err == nil {
-			var leagues []League
-			if json.Unmarshal([]byte(cached), &leagues) == nil {
-				return leagues, nil
-			}
-		}
+	if v, ok := cacheGet[[]League](ctx, c, cacheKey); ok {
+		return v, nil
 	}
 
 	leagues, err := c.fetchLeagues(ctx, gameKey)
@@ -256,22 +212,15 @@ func (c *Client) GetUserLeagues(ctx context.Context, gameKey string) ([]League, 
 		return nil, err
 	}
 
-	if c.cacheEnabled {
-		c.cache.Set(cacheKey, leagues, 24*time.Hour)
-	}
+	cacheSet(ctx, c, cacheKey, leagues, 24*time.Hour)
 	return leagues, nil
 }
 
 func (c *Client) GetLeagueTeams(ctx context.Context, leagueKey string) ([]Team, error) {
 	cacheKey := fmt.Sprintf("league:%s:teams", leagueKey)
 
-	if c.cacheEnabled {
-		if cached, err := c.cache.Get(cacheKey); err == nil {
-			var teams []Team
-			if json.Unmarshal([]byte(cached), &teams) == nil {
-				return teams, nil
-			}
-		}
+	if v, ok := cacheGet[[]Team](ctx, c, cacheKey); ok {
+		return v, nil
 	}
 
 	teams, err := c.fetchTeams(ctx, leagueKey)
@@ -279,22 +228,15 @@ func (c *Client) GetLeagueTeams(ctx context.Context, leagueKey string) ([]Team, 
 		return nil, err
 	}
 
-	if c.cacheEnabled {
-		c.cache.Set(cacheKey, teams, 6*time.Hour)
-	}
+	cacheSet(ctx, c, cacheKey, teams, 6*time.Hour)
 	return teams, nil
 }
 
 func (c *Client) GetTeamRoster(ctx context.Context, teamKey string) ([]Roster, error) {
 	cacheKey := fmt.Sprintf("team:%s:roster", teamKey)
 
-	if c.cacheEnabled {
-		if cached, err := c.cache.Get(cacheKey); err == nil {
-			var roster []Roster
-			if json.Unmarshal([]byte(cached), &roster) == nil {
-				return roster, nil
-			}
-		}
+	if v, ok := cacheGet[[]Roster](ctx, c, cacheKey); ok {
+		return v, nil
 	}
 
 	roster, err := c.fetchRoster(ctx, teamKey)
@@ -302,9 +244,7 @@ func (c *Client) GetTeamRoster(ctx context.Context, teamKey string) ([]Roster, e
 		return nil, err
 	}
 
-	if c.cacheEnabled {
-		c.cache.Set(cacheKey, roster, 1*time.Hour)
-	}
+	cacheSet(ctx, c, cacheKey, roster, 1*time.Hour)
 	return roster, nil
 }
 
@@ -548,15 +488,10 @@ func (c *Client) fetchRoster(ctx context.Context, teamKey string) ([]Roster, err
 		for _, ep := range p.Eligible_Positions {
 			eligible = append(eligible, ep.Position)
 		}
-		primary := ""
-		if len(eligible) > 0 {
-			primary = eligible[0]
-		}
 		slot := classifySlot(p.Selected_Position.Position)
 		roster = append(roster, Roster{
 			PlayerID:          p.Player_ID,
 			PlayerKey:         p.Player_Key,
-			Position:          primary,
 			EligiblePositions: eligible,
 			SelectedPos:       p.Selected_Position.Position,
 			SlotState:         slot,
@@ -567,75 +502,76 @@ func (c *Client) fetchRoster(ctx context.Context, teamKey string) ([]Roster, err
 	return roster, nil
 }
 
-func (c *APICache) Get(key string) (string, error) {
+func (c *apiCache) Get(ctx context.Context, key string) ([]byte, bool, error) {
 	if c == nil || c.db == nil {
-		return "", fmt.Errorf("cache not configured: no database")
+		return nil, false, fmt.Errorf("cache not configured: no database")
 	}
 
-	var value string
+	var value []byte
 	var expiresAt time.Time
 
 	query := `SELECT cache_value, expires_at FROM yahoo_api_cache WHERE cache_key = ?`
-	err := c.db.QueryRow(query, key).Scan(&value, &expiresAt)
+	err := c.db.QueryRowContext(ctx, query, key).Scan(&value, &expiresAt)
+	if err == sql.ErrNoRows {
+		return nil, false, nil
+	}
 	if err != nil {
-		return "", err
+		return nil, false, err
 	}
 
 	if time.Now().After(expiresAt) {
-		c.Delete(key)
-		return "", fmt.Errorf("cache expired")
+		_, _ = c.db.ExecContext(ctx, `DELETE FROM yahoo_api_cache WHERE cache_key = ?`, key)
+		return nil, false, nil
 	}
 
-	return value, nil
+	return value, true, nil
 }
 
-func (c *APICache) Set(key string, value interface{}, ttl time.Duration) error {
+func (c *apiCache) Set(ctx context.Context, key string, value []byte, ttl time.Duration) error {
 	if c == nil || c.db == nil {
 		return fmt.Errorf("cache not configured: no database")
-	}
-
-	jsonValue, err := json.Marshal(value)
-	if err != nil {
-		return err
 	}
 
 	expiresAt := time.Now().Add(ttl)
-
 	query := `INSERT OR REPLACE INTO yahoo_api_cache (cache_key, cache_value, expires_at) VALUES (?, ?, ?)`
-	_, err = c.db.Exec(query, key, string(jsonValue), expiresAt)
+	_, err := c.db.ExecContext(ctx, query, key, value, expiresAt)
 	return err
 }
 
-func (c *APICache) Delete(key string) error {
-	if c == nil || c.db == nil {
-		return fmt.Errorf("cache not configured: no database")
+// cacheGet returns a cached, JSON-decoded value of type T, or ok=false on a
+// cache miss, disabled cache, or any decode/store error (caching is advisory).
+func cacheGet[T any](ctx context.Context, c *Client, key string) (T, bool) {
+	var zero T
+	if !c.cacheEnabled {
+		return zero, false
 	}
-
-	query := `DELETE FROM yahoo_api_cache WHERE cache_key = ?`
-	_, err := c.db.Exec(query, key)
-	return err
+	b, ok, err := c.cache.Get(ctx, key)
+	if err != nil || !ok {
+		return zero, false
+	}
+	var v T
+	if json.Unmarshal(b, &v) != nil {
+		return zero, false
+	}
+	return v, true
 }
 
-func (c *APICache) CleanExpired() error {
-	if c == nil || c.db == nil {
-		return fmt.Errorf("cache not configured: no database")
+// cacheSet JSON-encodes v and stores it under key. Errors are ignored: caching
+// is best-effort and never affects correctness.
+func cacheSet(ctx context.Context, c *Client, key string, v any, ttl time.Duration) {
+	if !c.cacheEnabled {
+		return
 	}
-
-	query := `DELETE FROM yahoo_api_cache WHERE expires_at < datetime('now')`
-	_, err := c.db.Exec(query)
-	return err
+	if b, err := json.Marshal(v); err == nil {
+		_ = c.cache.Set(ctx, key, b, ttl)
+	}
 }
 
 func (c *Client) GetLeaguePlayers(ctx context.Context, leagueKey string, status PlayerStatus, start, count int) ([]Player, error) {
 	cacheKey := fmt.Sprintf("league:%s:players:%s:%d:%d", leagueKey, status, start, count)
 
-	if c.cacheEnabled {
-		if cached, err := c.cache.Get(cacheKey); err == nil {
-			var players []Player
-			if json.Unmarshal([]byte(cached), &players) == nil {
-				return players, nil
-			}
-		}
+	if v, ok := cacheGet[[]Player](ctx, c, cacheKey); ok {
+		return v, nil
 	}
 
 	players, err := c.fetchLeaguePlayers(ctx, leagueKey, status, start, count)
@@ -643,9 +579,7 @@ func (c *Client) GetLeaguePlayers(ctx context.Context, leagueKey string, status 
 		return nil, err
 	}
 
-	if c.cacheEnabled {
-		c.cache.Set(cacheKey, players, 1*time.Hour)
-	}
+	cacheSet(ctx, c, cacheKey, players, 1*time.Hour)
 	return players, nil
 }
 
@@ -656,13 +590,8 @@ func (c *Client) GetPlayerStats(ctx context.Context, leagueKey, playerKey string
 	}
 	cacheKey := fmt.Sprintf("player:%s:stats:%s:%s", playerKey, leagueKey, weekStr)
 
-	if c.cacheEnabled {
-		if cached, err := c.cache.Get(cacheKey); err == nil {
-			var player Player
-			if json.Unmarshal([]byte(cached), &player) == nil {
-				return &player, nil
-			}
-		}
+	if v, ok := cacheGet[Player](ctx, c, cacheKey); ok {
+		return &v, nil
 	}
 
 	player, err := c.fetchPlayerStats(ctx, leagueKey, playerKey, weekNum)
@@ -670,22 +599,15 @@ func (c *Client) GetPlayerStats(ctx context.Context, leagueKey, playerKey string
 		return nil, err
 	}
 
-	if c.cacheEnabled {
-		c.cache.Set(cacheKey, player, 2*time.Hour)
-	}
+	cacheSet(ctx, c, cacheKey, player, 2*time.Hour)
 	return player, nil
 }
 
 func (c *Client) GetLeagueStandings(ctx context.Context, leagueKey string) (*Standings, error) {
 	cacheKey := fmt.Sprintf("league:%s:standings", leagueKey)
 
-	if c.cacheEnabled {
-		if cached, err := c.cache.Get(cacheKey); err == nil {
-			var standings Standings
-			if json.Unmarshal([]byte(cached), &standings) == nil {
-				return &standings, nil
-			}
-		}
+	if v, ok := cacheGet[Standings](ctx, c, cacheKey); ok {
+		return &v, nil
 	}
 
 	standings, err := c.fetchStandings(ctx, leagueKey)
@@ -693,22 +615,15 @@ func (c *Client) GetLeagueStandings(ctx context.Context, leagueKey string) (*Sta
 		return nil, err
 	}
 
-	if c.cacheEnabled {
-		c.cache.Set(cacheKey, standings, 6*time.Hour)
-	}
+	cacheSet(ctx, c, cacheKey, standings, 6*time.Hour)
 	return standings, nil
 }
 
 func (c *Client) GetLeagueMatchups(ctx context.Context, leagueKey string, weekNum int) ([]Matchup, error) {
 	cacheKey := fmt.Sprintf("league:%s:matchups:week_%d", leagueKey, weekNum)
 
-	if c.cacheEnabled {
-		if cached, err := c.cache.Get(cacheKey); err == nil {
-			var matchups []Matchup
-			if json.Unmarshal([]byte(cached), &matchups) == nil {
-				return matchups, nil
-			}
-		}
+	if v, ok := cacheGet[[]Matchup](ctx, c, cacheKey); ok {
+		return v, nil
 	}
 
 	matchups, err := c.fetchMatchups(ctx, leagueKey, weekNum)
@@ -716,22 +631,15 @@ func (c *Client) GetLeagueMatchups(ctx context.Context, leagueKey string, weekNu
 		return nil, err
 	}
 
-	if c.cacheEnabled {
-		c.cache.Set(cacheKey, matchups, 1*time.Hour)
-	}
+	cacheSet(ctx, c, cacheKey, matchups, 1*time.Hour)
 	return matchups, nil
 }
 
 func (c *Client) GetLeagueDraftResults(ctx context.Context, leagueKey string) ([]DraftResult, error) {
 	cacheKey := fmt.Sprintf("league:%s:draft_results", leagueKey)
 
-	if c.cacheEnabled {
-		if cached, err := c.cache.Get(cacheKey); err == nil {
-			var results []DraftResult
-			if json.Unmarshal([]byte(cached), &results) == nil {
-				return results, nil
-			}
-		}
+	if v, ok := cacheGet[[]DraftResult](ctx, c, cacheKey); ok {
+		return v, nil
 	}
 
 	results, err := c.fetchDraftResults(ctx, leagueKey)
@@ -739,22 +647,15 @@ func (c *Client) GetLeagueDraftResults(ctx context.Context, leagueKey string) ([
 		return nil, err
 	}
 
-	if c.cacheEnabled {
-		c.cache.Set(cacheKey, results, 24*time.Hour)
-	}
+	cacheSet(ctx, c, cacheKey, results, 24*time.Hour)
 	return results, nil
 }
 
 func (c *Client) GetLeagueTransactions(ctx context.Context, leagueKey string) ([]Transaction, error) {
 	cacheKey := fmt.Sprintf("league:%s:transactions", leagueKey)
 
-	if c.cacheEnabled {
-		if cached, err := c.cache.Get(cacheKey); err == nil {
-			var transactions []Transaction
-			if json.Unmarshal([]byte(cached), &transactions) == nil {
-				return transactions, nil
-			}
-		}
+	if v, ok := cacheGet[[]Transaction](ctx, c, cacheKey); ok {
+		return v, nil
 	}
 
 	transactions, err := c.fetchTransactions(ctx, leagueKey)
@@ -762,9 +663,7 @@ func (c *Client) GetLeagueTransactions(ctx context.Context, leagueKey string) ([
 		return nil, err
 	}
 
-	if c.cacheEnabled {
-		c.cache.Set(cacheKey, transactions, 30*time.Minute)
-	}
+	cacheSet(ctx, c, cacheKey, transactions, 30*time.Minute)
 	return transactions, nil
 }
 

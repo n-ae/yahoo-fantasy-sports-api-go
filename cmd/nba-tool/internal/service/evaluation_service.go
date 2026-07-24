@@ -21,8 +21,8 @@ type TradeImpact struct {
 }
 
 type CategoryChange struct {
-	Category    string
-	Change      float64
+	Category      string
+	Change        float64
 	PercentChange float64
 }
 
@@ -35,18 +35,18 @@ type TradeEvaluation struct {
 }
 
 type PlayerProjection struct {
-	PlayerID   int
-	FPG        float64
-	PTS        float64
-	REB        float64
-	AST        float64
-	STL        float64
-	BLK        float64
-	TO         float64
-	FGPct      float64
-	FTPct      float64
-	TPM        float64
-	Position   string
+	PlayerID int
+	FPG      float64
+	PTS      float64
+	REB      float64
+	AST      float64
+	STL      float64
+	BLK      float64
+	TO       float64
+	FGPct    float64
+	FTPct    float64
+	TPM      float64
+	Position string
 }
 
 func NewEvaluationService(db *sql.DB) *EvaluationService {

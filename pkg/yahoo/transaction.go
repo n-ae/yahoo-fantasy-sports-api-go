@@ -1,32 +1,32 @@
 package yahoo
 
 type Transaction struct {
-	TransactionKey string               `json:"transaction_key"`
-	TransactionID  string               `json:"transaction_id"`
-	Type           string               `json:"type"`
-	Status         string               `json:"status"`
-	Timestamp      int64                `json:"timestamp"`
-	FAABBid        int                  `json:"faab_bid,omitempty"`
-	Players        []TransactionPlayer  `json:"players"`
+	TransactionKey string              `json:"transaction_key"`
+	TransactionID  string              `json:"transaction_id"`
+	Type           string              `json:"type"`
+	Status         string              `json:"status"`
+	Timestamp      int64               `json:"timestamp"`
+	FAABBid        int                 `json:"faab_bid,omitempty"`
+	Players        []TransactionPlayer `json:"players"`
 	// DecodeWarnings lists non-fatal numeric parse failures encountered while
 	// converting this transaction.
 	DecodeWarnings []DecodeWarning `json:"decode_warnings,omitempty"`
 }
 
 type TransactionPlayer struct {
-	PlayerKey         string `json:"player_key"`
-	PlayerID          string `json:"player_id"`
-	Name              PlayerName `json:"name"`
-	TransactionData   TransactionData `json:"transaction_data"`
+	PlayerKey       string          `json:"player_key"`
+	PlayerID        string          `json:"player_id"`
+	Name            PlayerName      `json:"name"`
+	TransactionData TransactionData `json:"transaction_data"`
 }
 
 type TransactionData struct {
-	Type               string `json:"type"`
-	SourceType         string `json:"source_type"`
-	SourceTeamKey      string `json:"source_team_key,omitempty"`
-	SourceTeamName     string `json:"source_team_name,omitempty"`
-	DestinationType    string `json:"destination_type"`
-	DestinationTeamKey string `json:"destination_team_key,omitempty"`
+	Type                string `json:"type"`
+	SourceType          string `json:"source_type"`
+	SourceTeamKey       string `json:"source_team_key,omitempty"`
+	SourceTeamName      string `json:"source_team_name,omitempty"`
+	DestinationType     string `json:"destination_type"`
+	DestinationTeamKey  string `json:"destination_team_key,omitempty"`
 	DestinationTeamName string `json:"destination_team_name,omitempty"`
 }
 

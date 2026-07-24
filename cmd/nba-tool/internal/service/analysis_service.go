@@ -111,15 +111,15 @@ func (s *AnalysisService) analyzeTeam(teamID int, totals TeamCategoryTotals, all
 	Totals TeamCategoryTotals
 }) TeamAnalysis {
 	categories := map[string][]float64{
-		"PTS":   {},
-		"REB":   {},
-		"AST":   {},
-		"STL":   {},
-		"BLK":   {},
-		"TO":    {},
-		"FG%":   {},
-		"FT%":   {},
-		"3PM":   {},
+		"PTS": {},
+		"REB": {},
+		"AST": {},
+		"STL": {},
+		"BLK": {},
+		"TO":  {},
+		"FG%": {},
+		"FT%": {},
+		"3PM": {},
 	}
 
 	for _, team := range allTeams {

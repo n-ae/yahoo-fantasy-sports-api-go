@@ -12,20 +12,20 @@ type LeagueRepository struct {
 }
 
 type League struct {
-	ID               int
-	YahooLeagueID    string
-	YahooGameKey     string
-	LeagueName       string
-	SeasonYear       int
-	ScoringType      string
-	ScoringSettings  string
-	NumTeams         int
-	CurrentWeek      int
-	StartWeek        int
-	EndWeek          int
-	LastSyncedAt     *time.Time
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID              int
+	YahooLeagueID   string
+	YahooGameKey    string
+	LeagueName      string
+	SeasonYear      int
+	ScoringType     string
+	ScoringSettings string
+	NumTeams        int
+	CurrentWeek     int
+	StartWeek       int
+	EndWeek         int
+	LastSyncedAt    *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 func NewLeagueRepository(db *sql.DB) *LeagueRepository {

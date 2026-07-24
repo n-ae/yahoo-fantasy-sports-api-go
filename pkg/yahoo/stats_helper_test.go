@@ -6,17 +6,17 @@ import (
 
 func TestParseNBAStatsComplete(t *testing.T) {
 	stats := []Stat{
-		{StatID: 4, Value: "10"},   // FGM
-		{StatID: 3, Value: "20"},   // FGA
-		{StatID: 5, Value: "0.500"}, // FG%
-		{StatID: 7, Value: "8"},    // FTM
-		{StatID: 6, Value: "10"},   // FTA
-		{StatID: 8, Value: "0.800"}, // FT%
-		{StatID: 10, Value: "3"},   // 3PM
-		{StatID: 9, Value: "9"},    // 3PA
+		{StatID: 4, Value: "10"},     // FGM
+		{StatID: 3, Value: "20"},     // FGA
+		{StatID: 5, Value: "0.500"},  // FG%
+		{StatID: 7, Value: "8"},      // FTM
+		{StatID: 6, Value: "10"},     // FTA
+		{StatID: 8, Value: "0.800"},  // FT%
+		{StatID: 10, Value: "3"},     // 3PM
+		{StatID: 9, Value: "9"},      // 3PA
 		{StatID: 11, Value: "0.333"}, // 3P%
-		{StatID: 12, Value: "31"},  // Points
-		{StatID: 0, Value: "1"},    // Games
+		{StatID: 12, Value: "31"},    // Points
+		{StatID: 0, Value: "1"},      // Games
 	}
 
 	nbaStats, err := ParseNBAStats(stats)
@@ -60,12 +60,12 @@ func TestParseNBAStatsComplete(t *testing.T) {
 
 func TestParseNBAStatsMissingPercentages(t *testing.T) {
 	stats := []Stat{
-		{StatID: 4, Value: "10"},  // FGM
-		{StatID: 3, Value: "20"},  // FGA
-		{StatID: 7, Value: "8"},   // FTM
-		{StatID: 6, Value: "10"},  // FTA
-		{StatID: 10, Value: "3"},  // 3PM
-		{StatID: 9, Value: "9"},   // 3PA
+		{StatID: 4, Value: "10"}, // FGM
+		{StatID: 3, Value: "20"}, // FGA
+		{StatID: 7, Value: "8"},  // FTM
+		{StatID: 6, Value: "10"}, // FTA
+		{StatID: 10, Value: "3"}, // 3PM
+		{StatID: 9, Value: "9"},  // 3PA
 	}
 
 	nbaStats, err := ParseNBAStats(stats)
@@ -138,10 +138,10 @@ func TestNBAStatsCalculateMethods(t *testing.T) {
 
 func TestNBAStatsCalculateMethodsZeroAttempts(t *testing.T) {
 	stats := NBAStats{
-		FGM: 0,
-		FGA: 0,
-		FTM: 0,
-		FTA: 0,
+		FGM:                0,
+		FGA:                0,
+		FTM:                0,
+		FTA:                0,
 		ThreePointsMade:    0,
 		ThreePointsAttempt: 0,
 	}
@@ -176,9 +176,9 @@ func TestNBAStatsTrueShootingPercent(t *testing.T) {
 
 func TestNBAStatsEffectiveFGPercent(t *testing.T) {
 	stats := NBAStats{
-		FGM:                10,
-		FGA:                20,
-		ThreePointsMade:    3,
+		FGM:             10,
+		FGA:             20,
+		ThreePointsMade: 3,
 	}
 
 	efg := stats.EffectiveFGPercent()
@@ -192,12 +192,12 @@ func TestNBAStatsEffectiveFGPercent(t *testing.T) {
 
 func TestStatHelperGetShootingStats(t *testing.T) {
 	stats := []Stat{
-		{StatID: 4, Value: "10"},  // FGM
-		{StatID: 3, Value: "20"},  // FGA
-		{StatID: 7, Value: "8"},   // FTM
-		{StatID: 6, Value: "10"},  // FTA
-		{StatID: 10, Value: "3"},  // 3PM
-		{StatID: 9, Value: "9"},   // 3PA
+		{StatID: 4, Value: "10"}, // FGM
+		{StatID: 3, Value: "20"}, // FGA
+		{StatID: 7, Value: "8"},  // FTM
+		{StatID: 6, Value: "10"}, // FTA
+		{StatID: 10, Value: "3"}, // 3PM
+		{StatID: 9, Value: "9"},  // 3PA
 	}
 
 	helper := NewStatHelper(stats)
@@ -220,7 +220,7 @@ func TestStatHelperGetShootingStats(t *testing.T) {
 
 func TestStatHelperGetShootingStatsMissing(t *testing.T) {
 	stats := []Stat{
-		{StatID: 4, Value: "10"},  // FGM only
+		{StatID: 4, Value: "10"}, // FGM only
 	}
 
 	helper := NewStatHelper(stats)
@@ -233,9 +233,9 @@ func TestStatHelperGetShootingStatsMissing(t *testing.T) {
 
 func TestParseCompoundStat(t *testing.T) {
 	stats := []Stat{
-		{StatID: StatIDFGM, Value: "7/15"},  // Compound FGM/FGA
-		{StatID: StatIDFTM, Value: "4/5"},   // Compound FTM/FTA
-		{StatID: StatID3PM, Value: "2/8"},   // Compound 3PM/3PA
+		{StatID: StatIDFGM, Value: "7/15"}, // Compound FGM/FGA
+		{StatID: StatIDFTM, Value: "4/5"},  // Compound FTM/FTA
+		{StatID: StatID3PM, Value: "2/8"},  // Compound 3PM/3PA
 	}
 
 	helper := NewStatHelper(stats)
@@ -356,9 +356,9 @@ func TestGetFTMFTAAlternateCompoundID(t *testing.T) {
 func TestParseNBAStatsWithCompoundStats(t *testing.T) {
 	// Test with compound stats instead of individual stat IDs
 	stats := []Stat{
-		{StatID: StatIDFGM, Value: "10/20"},  // Compound FGM/FGA
-		{StatID: StatIDFTM, Value: "8/10"},   // Compound FTM/FTA
-		{StatID: StatID3PM, Value: "3/9"},    // Compound 3PM/3PA
+		{StatID: StatIDFGM, Value: "10/20"}, // Compound FGM/FGA
+		{StatID: StatIDFTM, Value: "8/10"},  // Compound FTM/FTA
+		{StatID: StatID3PM, Value: "3/9"},   // Compound 3PM/3PA
 		{StatID: StatIDPoints, Value: "31"},
 		{StatID: StatIDGamesPlayed, Value: "1"},
 	}

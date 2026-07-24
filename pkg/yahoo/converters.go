@@ -14,9 +14,9 @@ func convertYahooPlayerToPlayer(yp yahooPlayerData) Player {
 // warnings merged into their own container instead of onto the nested Player.
 func convertYahooPlayerWith(d *decoder, yp yahooPlayerData) Player {
 	player := Player{
-		PlayerKey:             yp.PlayerKey,
-		PlayerID:              yp.PlayerID,
-		Name:                  PlayerName{
+		PlayerKey: yp.PlayerKey,
+		PlayerID:  yp.PlayerID,
+		Name: PlayerName{
 			Full:       yp.Name.Full,
 			First:      yp.Name.First,
 			Last:       yp.Name.Last,
@@ -150,12 +150,12 @@ func convertYahooMatchup(ym yahooMatchupData) Matchup {
 		projPoints := td.parseFloat("team_projected_points.total", t.TeamProjectedPoints.Total)
 
 		team := MatchupTeam{
-			TeamKey: t.TeamKey,
-			TeamID:  t.TeamID,
-			Name:    t.Name,
-			Points:  points,
+			TeamKey:         t.TeamKey,
+			TeamID:          t.TeamID,
+			Name:            t.Name,
+			Points:          points,
 			ProjectedPoints: projPoints,
-			IsWinner: t.TeamKey == ym.WinnerTeamKey,
+			IsWinner:        t.TeamKey == ym.WinnerTeamKey,
 			TeamPoints: TeamPoints{
 				CoverageType: t.TeamPoints.CoverageType,
 				Week:         weekNum,

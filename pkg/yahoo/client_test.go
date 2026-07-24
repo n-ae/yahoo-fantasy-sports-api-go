@@ -32,7 +32,7 @@ func TestRefreshSingleFlight(t *testing.T) {
 	}))
 	defer apiSrv.Close()
 
-	c := NewClient("k", "s", nil)
+	c, _ := NewClient(WithCredentials("k", "s"))
 	c.baseURL = apiSrv.URL
 	c.tokenURL = tokenSrv.URL
 	c.accessToken = "old-token"
@@ -76,7 +76,7 @@ func TestRefreshHonoursContext(t *testing.T) {
 	defer tokenSrv.Close()
 	defer close(release)
 
-	c := NewClient("k", "s", nil)
+	c, _ := NewClient(WithCredentials("k", "s"))
 	c.tokenURL = tokenSrv.URL
 	c.accessToken = "old-token"
 	c.refreshToken = "old-refresh"
@@ -132,7 +132,7 @@ func TestFetchRosterInjuredNotStarting(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewClient("k", "s", nil)
+	c, _ := NewClient(WithCredentials("k", "s"))
 	c.baseURL = srv.URL
 	c.accessToken = "token"
 
@@ -170,7 +170,7 @@ func TestMakeRequestReturnsAPIError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewClient("k", "s", nil)
+	c, _ := NewClient(WithCredentials("k", "s"))
 	c.baseURL = srv.URL
 	c.accessToken = "token"
 
@@ -193,18 +193,13 @@ func TestMakeRequestReturnsAPIError(t *testing.T) {
 
 // Cache methods must not panic when constructed without a database.
 func TestCacheNilDBNoPanic(t *testing.T) {
-	cache := &APICache{db: nil}
+	cache := &apiCache{db: nil}
+	ctx := context.Background()
 
-	if _, err := cache.Get("k"); err == nil {
-		t.Error("Get with nil db should return an error")
+	if _, ok, err := cache.Get(ctx, "k"); ok || err == nil {
+		t.Error("Get with nil db should return an error and ok=false")
 	}
-	if err := cache.Set("k", "v", 0); err == nil {
+	if err := cache.Set(ctx, "k", []byte("v"), 0); err == nil {
 		t.Error("Set with nil db should return an error")
-	}
-	if err := cache.Delete("k"); err == nil {
-		t.Error("Delete with nil db should return an error")
-	}
-	if err := cache.CleanExpired(); err == nil {
-		t.Error("CleanExpired with nil db should return an error")
 	}
 }

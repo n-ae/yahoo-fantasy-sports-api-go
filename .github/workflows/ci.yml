@@ -24,8 +24,8 @@ jobs:
 
       - name: Import direction (SDK must not depend on the app layer)
         run: |
-          if go list -deps ./pkg/yahoo/... | grep -E 'pkg/(service|repository)$'; then
-            echo "::error::pkg/yahoo must not import pkg/service or pkg/repository"
+          if go list -deps ./pkg/yahoo/... | grep -E '(pkg|internal)/(service|repository)$'; then
+            echo "::error::pkg/yahoo must not import the application layer (service/repository)"
             exit 1
           fi
           echo "ok: pkg/yahoo has no application-layer dependencies"
