@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- CI: bumped `actions/checkout` to v5 and `actions/setup-go` to v6 (Node 24), silencing the Node 20 deprecation warning; both remain pinned to commit SHAs.
+
 ## [2.2.5] - 2026-07-24
 
 ### Changed
