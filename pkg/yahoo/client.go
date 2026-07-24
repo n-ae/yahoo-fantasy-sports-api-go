@@ -481,6 +481,13 @@ func (c *Client) fetchRoster(ctx context.Context, teamKey string) ([]Roster, err
 		return nil, fmt.Errorf("failed to parse roster response: %w", err)
 	}
 
+	// Yahoo team keys look like "<gameKey>.l.<leagueID>.t.<teamID>"; extract the
+	// team ID so the exported Roster.TeamID is populated rather than left empty.
+	teamID := teamKey
+	if i := strings.LastIndex(teamKey, ".t."); i >= 0 {
+		teamID = teamKey[i+len(".t."):]
+	}
+
 	var roster []Roster
 	for _, playerItem := range resp.Fantasy_Content.Team.Roster.Players {
 		p := playerItem.Player
@@ -490,6 +497,7 @@ func (c *Client) fetchRoster(ctx context.Context, teamKey string) ([]Roster, err
 		}
 		slot := classifySlot(p.Selected_Position.Position)
 		roster = append(roster, Roster{
+			TeamID:            teamID,
 			PlayerID:          p.Player_ID,
 			PlayerKey:         p.Player_Key,
 			EligiblePositions: eligible,

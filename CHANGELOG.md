@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.2] - 2026-07-24
+
+### Fixed
+- `FromEnv` no longer lets `YAHOO_BASE_URL` override an explicit `WithBaseURL`, honoring the documented "explicit options take precedence regardless of order" contract (credentials/tokens were already correct; base URL now matches).
+- `DecodeWarning` is now JSON-round-trippable. Its `error` field previously could not be unmarshaled, so a cached model carrying a decode warning (i.e. exactly when Yahoo sent malformed numeric data) failed to decode and silently fell back to a cache miss. Custom `MarshalJSON`/`UnmarshalJSON` flatten the error to a message and rebuild it; the `Err` field is unchanged for callers.
+- `Roster.TeamID` is now populated (extracted from the team key, e.g. `454.l.1.t.7` → `7`) instead of always being empty.
+
 ## [2.2.1] - 2026-07-24
 
 ### Tests

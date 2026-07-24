@@ -71,6 +71,10 @@ type config struct {
 	logger       Logger
 	tokenStore   TokenStore
 	retry        RetryPolicy
+
+	// baseURLExplicit records whether WithBaseURL set baseURL, so FromEnv can
+	// honor the "explicit options win regardless of order" contract.
+	baseURLExplicit bool
 }
 
 func defaultConfig() config {
@@ -123,6 +127,7 @@ func WithBaseURL(u string) Option {
 			return fmt.Errorf("yahoo: WithBaseURL requires a non-empty URL")
 		}
 		c.baseURL = u
+		c.baseURLExplicit = true
 		return nil
 	}
 }
@@ -218,8 +223,10 @@ func FromEnv() Option {
 		if c.refreshToken == "" {
 			c.refreshToken = os.Getenv("YAHOO_REFRESH_TOKEN")
 		}
-		if v := os.Getenv("YAHOO_BASE_URL"); v != "" {
-			c.baseURL = v
+		if !c.baseURLExplicit {
+			if v := os.Getenv("YAHOO_BASE_URL"); v != "" {
+				c.baseURL = v
+			}
 		}
 		if os.Getenv("YAHOO_ENABLE_CACHE") == "true" {
 			c.cacheEnabled = true

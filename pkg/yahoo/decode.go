@@ -1,6 +1,8 @@
 package yahoo
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -19,6 +21,40 @@ type DecodeWarning struct {
 
 func (w DecodeWarning) String() string {
 	return fmt.Sprintf("%s: cannot parse %q: %v", w.Field, w.Value, w.Err)
+}
+
+// decodeWarningJSON is the stable wire form. The Err interface has no reliable
+// JSON representation, so it is flattened to its message on the way out and
+// rebuilt as a plain error on the way in — this keeps a model carrying
+// DecodeWarnings round-trippable through the cache (a malformed value is exactly
+// when a warning exists, so an unmarshalable warning would silently defeat
+// caching precisely when it matters).
+type decodeWarningJSON struct {
+	Field string `json:"field"`
+	Value string `json:"value"`
+	Error string `json:"error,omitempty"`
+}
+
+func (w DecodeWarning) MarshalJSON() ([]byte, error) {
+	out := decodeWarningJSON{Field: w.Field, Value: w.Value}
+	if w.Err != nil {
+		out.Error = w.Err.Error()
+	}
+	return json.Marshal(out)
+}
+
+func (w *DecodeWarning) UnmarshalJSON(data []byte) error {
+	var in decodeWarningJSON
+	if err := json.Unmarshal(data, &in); err != nil {
+		return err
+	}
+	w.Field, w.Value = in.Field, in.Value
+	if in.Error != "" {
+		w.Err = errors.New(in.Error)
+	} else {
+		w.Err = nil
+	}
+	return nil
 }
 
 // decoder parses Yahoo's string-encoded numbers and accumulates a warning for
