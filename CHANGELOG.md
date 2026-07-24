@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.2.9] - 2026-07-25
+
+### Changed
+- Retired the `v1.x` line: the `v1-maintenance` branch is deleted. All `v1.x` tags are unchanged, so v1 remains installable (`@v1.9.1`, etc.) but is frozen. README, `go.mod` note, and the migration guide updated to reflect this; the v1 retractions live in the `go.mod` of the v1.x tags. No SDK changes.
+
 ## [2.2.8] - 2026-07-25
 
 ### Fixed
