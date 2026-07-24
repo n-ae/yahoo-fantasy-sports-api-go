@@ -25,6 +25,7 @@ Each ADR follows this structure:
 | [0004](./0004-token-persistence.md) | OAuth Token Persistence | Accepted | 2026-07-24 |
 | [0005](./0005-dynamic-game-key-discovery.md) | Dynamic Game-Key Discovery | Accepted | 2026-07-24 |
 | [0006](./0006-pagination.md) | Pagination for Collection Endpoints | Accepted | 2026-07-24 |
+| [0007](./0007-declined-hardening.md) | Deliberately Declined Hardening (Solo, Read-Only Scope) | Accepted | 2026-07-24 |
 
 ## Decision Summary
 

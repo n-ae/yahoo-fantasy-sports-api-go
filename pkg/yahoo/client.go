@@ -321,6 +321,15 @@ func (c *Client) doRefresh(ctx context.Context, usedToken string) (Token, bool, 
 		return Token{}, false, fmt.Errorf("failed to parse token response: %w", err)
 	}
 
+	// Reject a syntactically-valid but unusable refresh response rather than
+	// installing (and possibly persisting) empty or already-expired credentials.
+	if strings.TrimSpace(tokenResp.AccessToken) == "" {
+		return Token{}, false, fmt.Errorf("token refresh response omitted access_token")
+	}
+	if tokenResp.ExpiresIn <= 0 {
+		return Token{}, false, fmt.Errorf("token refresh response has invalid expires_in %d", tokenResp.ExpiresIn)
+	}
+
 	c.accessToken = tokenResp.AccessToken
 	if tokenResp.RefreshToken != "" {
 		c.refreshToken = tokenResp.RefreshToken

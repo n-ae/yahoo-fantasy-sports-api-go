@@ -112,6 +112,39 @@ func TestTokenStoreSavedOnceUnderConcurrency(t *testing.T) {
 	}
 }
 
+// A refresh response with an empty access_token (or non-positive expires_in)
+// must be rejected, not installed.
+func TestRefreshRejectsInvalidResponse(t *testing.T) {
+	cases := map[string]string{
+		"empty access_token":  `{"access_token":"","refresh_token":"r","expires_in":3600}`,
+		"zero expires_in":     `{"access_token":"new","refresh_token":"r","expires_in":0}`,
+		"negative expires_in": `{"access_token":"new","refresh_token":"r","expires_in":-1}`,
+	}
+	for name, body := range cases {
+		token := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(body))
+		}))
+		c, err := NewClient(
+			WithCredentials("k", "s"),
+			WithTokens("old-token", "old-refresh"),
+			WithTokenURL(token.URL),
+			WithHTTPClient(&http.Client{}),
+		)
+		if err != nil {
+			token.Close()
+			t.Fatalf("%s: construction failed: %v", name, err)
+		}
+		_, refreshed, err := c.doRefresh(context.Background(), "old-token")
+		token.Close()
+		if err == nil || refreshed {
+			t.Errorf("%s: expected rejection, got refreshed=%v err=%v", name, refreshed, err)
+		}
+		if c.currentAccessToken() != "old-token" {
+			t.Errorf("%s: token was overwritten to %q despite invalid response", name, c.currentAccessToken())
+		}
+	}
+}
+
 // A Save error is advisory: it must not fail the API request.
 func TestTokenStoreErrorIsAdvisory(t *testing.T) {
 	api, token := newRefreshingServers(t)

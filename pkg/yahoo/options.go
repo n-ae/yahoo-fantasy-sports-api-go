@@ -10,13 +10,16 @@ import (
 	"time"
 )
 
-// validateHTTPURL rejects empty, malformed, or non-http(s) URLs so
-// misconfiguration fails at construction instead of on the first request.
+// validateHTTPURL rejects URLs that would break request construction, which
+// concatenates the endpoint and appends "?format=json". A base URL with a
+// query string, fragment, or user-info would swallow the endpoint or corrupt
+// the request target, so those are rejected at construction rather than
+// producing a broken request later.
 func validateHTTPURL(name, raw string) error {
 	if raw == "" {
 		return fmt.Errorf("yahoo: %s requires a non-empty URL", name)
 	}
-	u, err := url.ParseRequestURI(raw)
+	u, err := url.Parse(raw)
 	if err != nil {
 		return fmt.Errorf("yahoo: %s is not a valid URL: %w", name, err)
 	}
@@ -25,6 +28,15 @@ func validateHTTPURL(name, raw string) error {
 	}
 	if u.Host == "" {
 		return fmt.Errorf("yahoo: %s must include a host", name)
+	}
+	if u.RawQuery != "" || u.ForceQuery {
+		return fmt.Errorf("yahoo: %s must not contain a query string", name)
+	}
+	if u.Fragment != "" {
+		return fmt.Errorf("yahoo: %s must not contain a fragment", name)
+	}
+	if u.User != nil {
+		return fmt.Errorf("yahoo: %s must not contain user info", name)
 	}
 	return nil
 }

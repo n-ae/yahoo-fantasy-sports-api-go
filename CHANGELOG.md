@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.2.7] - 2026-07-24
+
+The three cheap correctness wins from [maintainability assessment 0003](docs/assessments/0003-maintainable-architect-v4-assessment.md), plus a scope-honesty doc fix. The remaining assessment items are recorded as deliberately out of scope in [ADR-0007](docs/adr/0007-declined-hardening.md).
+
+### Fixed
+- `WithBaseURL` / `WithTokenURL` now reject URLs with a query string, fragment, or user-info. Request construction concatenates the endpoint and appends `?format=json`, so a base URL like `https://host/base?x=1` would previously pass validation but silently swallow the endpoint into the query. (assessment 0003 #11)
+- Token refresh now rejects a response with an empty `access_token` or non-positive `expires_in` instead of installing (and possibly persisting) unusable credentials. (assessment 0003 #2)
+
+### Tests
+- Added direct fixture-based tests for the previously-uncovered endpoint fetchers (`GetUserLeagues`, `GetLeagueTeams`, `GetLeaguePlayers`, `GetPlayerStats`, `GetLeagueStandings`, `GetLeagueMatchups`, `GetLeagueDraftResults`, `GetLeagueTransactions`), plus empty-collection and malformed-payload cases. `pkg/yahoo` coverage 64% → ~79%. (assessment 0003 #17)
+
+### Documentation
+- README no longer claims "complete feature parity"; it now states this is a read-oriented SDK that does not implement OAuth onboarding or write operations.
+- Added ADR-0007 recording the multi-user-SaaS hardening items deliberately declined for a solo read-only client, with revisit triggers.
+
 ## [2.2.6] - 2026-07-24
 
 ### Changed

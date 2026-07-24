@@ -10,9 +10,11 @@ A comprehensive Go SDK for the Yahoo Fantasy Sports API with support for NFL, ML
 
 ## Features
 
-This SDK provides complete feature parity with the Python `yahoofantasy` package and includes:
+This is a **read-oriented** SDK covering the Yahoo Fantasy read endpoints. It does
+not implement the initial OAuth authorization flow (bring your own tokens) or
+write operations (lineup changes, add/drop, waivers, trades). Supported features:
 
-- ✅ OAuth 2.0 authentication with automatic token refresh
+- ✅ OAuth 2.0 token refresh (single-flight; you supply the initial tokens)
 - ✅ League, team, and player data retrieval
 - ✅ Player statistics (weekly and season-long)
 - ✅ Weekly matchups and scoring
@@ -598,15 +600,19 @@ go test ./pkg/yahoo/... -cover
 
 ## Compatibility
 
-This SDK provides complete feature parity with the Python `yahoofantasy` package (v1.4.9), including:
+This SDK covers the **read** surface of the Python `yahoofantasy` package (v1.4.9).
+Supported:
 
-- ✅ All resource types (League, Team, Player, Week, Matchup, Standings, etc.)
-- ✅ All API methods (get_leagues, players, standings, weeks, draft_results, transactions)
+- ✅ Resource types (League, Team, Player, Week, Matchup, Standings, etc.)
+- ✅ Read methods (get_leagues, players, standings, weeks, draft_results, transactions)
 - ✅ Player filtering by status
 - ✅ Weekly and season stats
 - ✅ Draft results and transaction history
-- ✅ Game ID mapping for all sports (2001-2025; extend `games.go` for later seasons)
+- ✅ Game ID mapping for all sports (2001–2025 static; newer seasons via `Client.GameKey` discovery)
 - ✅ Caching with configurable TTL
+
+Not implemented: initial OAuth authorization/onboarding, and write operations
+(lineup, add/drop, waivers, trades).
 
 ## Decode warnings
 

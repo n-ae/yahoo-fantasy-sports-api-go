@@ -57,7 +57,13 @@ func TestGameKeyRejectsUnknownSport(t *testing.T) {
 }
 
 func TestURLValidation(t *testing.T) {
-	for _, u := range []string{"", "://bad", "ftp://example.com", "notaurl", "http://"} {
+	bad := []string{
+		"", "://bad", "ftp://example.com", "notaurl", "http://",
+		"https://example.com/base?x=1",  // query would swallow the endpoint
+		"https://example.com/base#frag", // fragment
+		"https://user:pass@example.com", // user info
+	}
+	for _, u := range bad {
 		if _, err := NewClient(WithBaseURL(u)); err == nil {
 			t.Errorf("WithBaseURL(%q) should error", u)
 		}
@@ -65,7 +71,7 @@ func TestURLValidation(t *testing.T) {
 			t.Errorf("WithTokenURL(%q) should error", u)
 		}
 	}
-	if _, err := NewClient(WithBaseURL("https://ok.example")); err != nil {
+	if _, err := NewClient(WithBaseURL("https://ok.example/fantasy/v2")); err != nil {
 		t.Errorf("valid URL rejected: %v", err)
 	}
 }
