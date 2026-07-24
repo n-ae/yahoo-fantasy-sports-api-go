@@ -25,8 +25,16 @@ type Client struct {
 	baseURL      string
 	tokenURL     string
 	cache        *APICache
-	tokenMutex   sync.Mutex
+	tokenMu      sync.RWMutex
 	cacheEnabled bool
+}
+
+// currentAccessToken returns the access token under a read lock so reads do not
+// race with a concurrent refresh.
+func (c *Client) currentAccessToken() string {
+	c.tokenMu.RLock()
+	defer c.tokenMu.RUnlock()
+	return c.accessToken
 }
 
 type APICache struct {
@@ -294,9 +302,20 @@ func (c *Client) GetTeamRoster(ctx context.Context, teamKey string) ([]Roster, e
 	return roster, nil
 }
 
-func (c *Client) refreshAccessToken() error {
-	c.tokenMutex.Lock()
-	defer c.tokenMutex.Unlock()
+// refreshIfStale exchanges the refresh token for a new access token, but only
+// if the access token still matches usedToken — the value the caller sent on
+// the request that got a 401. This single-flights concurrent refreshes: when N
+// requests expire at once, the first refreshes and the rest observe a changed
+// token and return without hitting the token endpoint again. The refresh HTTP
+// call honours ctx.
+func (c *Client) refreshIfStale(ctx context.Context, usedToken string) error {
+	c.tokenMu.Lock()
+	defer c.tokenMu.Unlock()
+
+	// Another goroutine already refreshed while we waited for the lock.
+	if c.accessToken != usedToken {
+		return nil
+	}
 
 	if c.refreshToken == "" {
 		return fmt.Errorf("no refresh token available")
@@ -306,7 +325,7 @@ func (c *Client) refreshAccessToken() error {
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", c.refreshToken)
 
-	req, err := http.NewRequest("POST", c.tokenURL, bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.tokenURL, bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		return fmt.Errorf("failed to create token request: %w", err)
 	}
@@ -336,12 +355,12 @@ func (c *Client) refreshAccessToken() error {
 		c.refreshToken = tokenResp.RefreshToken
 	}
 
-	fmt.Printf("✅ Refreshed Yahoo access token (expires in %d seconds)\n", tokenResp.ExpiresIn)
 	return nil
 }
 
 func (c *Client) makeRequest(ctx context.Context, endpoint string) ([]byte, error) {
-	if c.accessToken == "" {
+	token := c.currentAccessToken()
+	if token == "" {
 		return nil, fmt.Errorf("Yahoo access token not configured - set YAHOO_ACCESS_TOKEN environment variable")
 	}
 
@@ -351,7 +370,7 @@ func (c *Client) makeRequest(ctx context.Context, endpoint string) ([]byte, erro
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.httpClient.Do(req)
@@ -363,15 +382,16 @@ func (c *Client) makeRequest(ctx context.Context, endpoint string) ([]byte, erro
 	if resp.StatusCode == http.StatusUnauthorized {
 		body, _ := readLimited(resp.Body)
 		if strings.Contains(string(body), "token_expired") {
-			if err := c.refreshAccessToken(); err != nil {
+			if err := c.refreshIfStale(ctx, token); err != nil {
 				return nil, fmt.Errorf("failed to refresh expired token: %w", err)
 			}
 
+			token = c.currentAccessToken()
 			req, err = http.NewRequestWithContext(ctx, "GET", url, nil)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create retry request: %w", err)
 			}
-			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 			req.Header.Set("Accept", "application/json")
 
 			resp, err = c.httpClient.Do(req)

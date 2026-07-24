@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.1] - 2026-07-24
+
+### Fixed
+- **OAuth refresh is now single-flight**: when several requests expire at once, only the first exchanges the refresh token; the rest observe the updated token and retry without hitting the token endpoint again (previously N expired requests caused N refreshes).
+- **Token refresh honors `context.Context`**: the refresh HTTP call uses the request's context, so cancellation/timeout aborts it.
+- **Token reads are synchronized**: access-token reads now happen under a read lock, removing a data race with a concurrent refresh.
+- **Removed stdout logging**: the library no longer prints to stdout on a successful refresh.
+
 ## [1.6.0] - 2026-07-24
 
 ### Added
