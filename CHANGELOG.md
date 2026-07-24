@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.2] - 2026-07-24
+
+### Added
+- **Bounded retries for transient failures**: GET requests now retry on `429 Too Many Requests` and `500/502/503/504` up to 3 times, with exponential backoff plus full jitter (capped at 8s). `429` responses honor the `Retry-After` header (seconds or HTTP date). Backoff waits respect `context.Context` cancellation. On exhaustion the last response is returned as a typed `*APIError`. Retry limits are fixed defaults for now; making them configurable is planned alongside the options constructor (ADR-0003).
+
 ## [1.6.1] - 2026-07-24
 
 ### Fixed

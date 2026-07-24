@@ -364,50 +364,64 @@ func (c *Client) makeRequest(ctx context.Context, endpoint string) ([]byte, erro
 		return nil, fmt.Errorf("Yahoo access token not configured - set YAHOO_ACCESS_TOKEN environment variable")
 	}
 
-	url := fmt.Sprintf("%s/%s?format=json", c.baseURL, endpoint)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
+	reqURL := fmt.Sprintf("%s/%s?format=json", c.baseURL, endpoint)
+	refreshed := false
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusUnauthorized {
-		body, _ := readLimited(resp.Body)
-		if strings.Contains(string(body), "token_expired") {
-			if err := c.refreshIfStale(ctx, token); err != nil {
-				return nil, fmt.Errorf("failed to refresh expired token: %w", err)
-			}
-
-			token = c.currentAccessToken()
-			req, err = http.NewRequestWithContext(ctx, "GET", url, nil)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create retry request: %w", err)
-			}
-			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-			req.Header.Set("Accept", "application/json")
-
-			resp, err = c.httpClient.Do(req)
-			if err != nil {
-				return nil, fmt.Errorf("failed to retry request: %w", err)
-			}
-			defer resp.Body.Close()
+	for attempt := 0; ; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
-	}
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Accept", "application/json")
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := readLimited(resp.Body)
-		return nil, &APIError{StatusCode: resp.StatusCode, Endpoint: endpoint, Body: string(body)}
-	}
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to make request: %w", err)
+		}
 
-	return readLimited(resp.Body)
+		// Expired access token: refresh once and retry immediately. This is not
+		// counted as a transient retry and does not consume the retry budget.
+		if resp.StatusCode == http.StatusUnauthorized && !refreshed {
+			body, _ := readLimited(resp.Body)
+			resp.Body.Close()
+			if strings.Contains(string(body), "token_expired") {
+				if err := c.refreshIfStale(ctx, token); err != nil {
+					return nil, fmt.Errorf("failed to refresh expired token: %w", err)
+				}
+				token = c.currentAccessToken()
+				refreshed = true
+				continue
+			}
+			return nil, &APIError{StatusCode: resp.StatusCode, Endpoint: endpoint, Body: string(body)}
+		}
+
+		// Rate limiting and transient server errors: bounded retry with backoff,
+		// honouring Retry-After on 429.
+		if isRetryableStatus(resp.StatusCode) && attempt < maxRetries {
+			delay := backoffDelay(attempt)
+			if resp.StatusCode == http.StatusTooManyRequests {
+				if ra, ok := retryAfterDelay(resp.Header.Get("Retry-After")); ok {
+					delay = ra
+				}
+			}
+			resp.Body.Close()
+			if err := sleepCtx(ctx, delay); err != nil {
+				return nil, err
+			}
+			continue
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := readLimited(resp.Body)
+			resp.Body.Close()
+			return nil, &APIError{StatusCode: resp.StatusCode, Endpoint: endpoint, Body: string(body)}
+		}
+
+		body, err := readLimited(resp.Body)
+		resp.Body.Close()
+		return body, err
+	}
 }
 
 func (c *Client) fetchLeagues(ctx context.Context, gameKey string) ([]League, error) {

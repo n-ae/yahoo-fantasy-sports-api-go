@@ -161,11 +161,12 @@ func TestFetchRosterInjuredNotStarting(t *testing.T) {
 	}
 }
 
-// A non-200 response must surface as a typed *APIError callers can inspect.
+// A non-retryable non-200 response must surface as a typed *APIError callers
+// can inspect, without retrying.
 func TestMakeRequestReturnsAPIError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusTooManyRequests)
-		w.Write([]byte("rate limited"))
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("no such resource"))
 	}))
 	defer srv.Close()
 
@@ -182,8 +183,8 @@ func TestMakeRequestReturnsAPIError(t *testing.T) {
 	if !errors.As(err, &apiErr) {
 		t.Fatalf("error is not *APIError: %v", err)
 	}
-	if apiErr.StatusCode != http.StatusTooManyRequests {
-		t.Errorf("StatusCode = %d, want %d", apiErr.StatusCode, http.StatusTooManyRequests)
+	if apiErr.StatusCode != http.StatusNotFound {
+		t.Errorf("StatusCode = %d, want %d", apiErr.StatusCode, http.StatusNotFound)
 	}
 	if apiErr.Endpoint != "league/x/teams" {
 		t.Errorf("Endpoint = %q, want %q", apiErr.Endpoint, "league/x/teams")
