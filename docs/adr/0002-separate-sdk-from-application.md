@@ -17,12 +17,19 @@ very different kinds of code in one importable unit:
   concrete SQLite schema, complete with hardcoded scoring weights and a fixed
   `2024-25` season.
 
-Because both live under one module, anyone importing the client inherits the
-whole thing, including:
+Because both live under one module, the module carries the whole thing,
+including:
 
-- a **mandatory cgo dependency** (`github.com/mattn/go-sqlite3`), which forces
-  `CGO_ENABLED=1`, a C toolchain, and slower cross-compilation on every
-  consumer — even those who never touch caching or persistence;
+- a **declared cgo dependency** (`github.com/mattn/go-sqlite3`) in `go.mod`. It
+  appears in every consumer's module graph and `go.sum` and is downloaded into
+  the module cache. **Correction (verified against `v1.5.0`):** it is *not*
+  compiled into consumers that import only `pkg/yahoo`. `pkg/yahoo` uses
+  `database/sql` with a caller-supplied `*sql.DB` and registers no driver, so a
+  `pkg/yahoo`-only consumer builds with `CGO_ENABLED=0` and shows no sqlite in
+  `go list -deps`. The driver is imported only by the `examples/` programs (and
+  would be by anything using the application layer). So the cost here is a
+  larger declared module graph, not forced cgo on library users — a weaker
+  problem than an earlier draft of this ADR stated;
 - application logic (scoring models, valuation math, a private DB schema) that
   is not configuration and is wrong for any league that isn't the author's;
 - an identity that is neither cleanly "a library" nor cleanly "an app."
@@ -49,10 +56,13 @@ Concretely, in order of preference:
    surface.** Preferred target is a `cmd/`-based application (e.g.
    `cmd/nba-tool/`) or a separate repository/module. The SDK keeps zero
    knowledge of scoring, valuation, or any application schema.
-2. **Remove the mandatory cgo SQLite dependency from `pkg/yahoo`.** Caching
-   becomes an injected interface with an in-memory default (see
+2. **Drop the SQLite requirement from the SDK module.** Caching becomes an
+   injected interface with an in-memory default (see
    [ADR-0003](./0003-options-constructor.md) and the planned `Cache`
-   interface). The SQLite-backed cache, if kept, moves to the application side.
+   interface); the SQLite-backed cache, if kept, moves to the application side.
+   This removes `mattn/go-sqlite3` from the SDK's declared module graph and
+   `go.sum` — a graph-hygiene win. (It is not needed to spare `pkg/yahoo`-only
+   consumers from cgo: as verified above, they already don't compile it.)
 3. **Depend downward only.** The application imports `pkg/yahoo`; `pkg/yahoo`
    imports nothing from the application. A `go mod graph` / import audit
    enforces this.
@@ -65,8 +75,11 @@ belongs to the consumer.
 
 ### Positive
 
-- **No forced cgo for library users.** Importers of `pkg/yahoo` get a
-  pure-Go dependency graph and fast cross-compilation.
+- **Smaller declared module graph.** `mattn/go-sqlite3` leaves the SDK's
+  `go.mod`/`go.sum`, so consumers stop downloading it into their module cache
+  and it no longer appears in their dependency graph or vulnerability scans.
+  (Note: `pkg/yahoo`-only consumers already build cgo-free today — this is a
+  graph-hygiene improvement, not a fix for forced cgo.)
 - **Smaller, cohesive public API.** The SDK is judged on its read path, which
   is its strongest part, instead of on application code that ships as
   importable-but-unsupported.
@@ -130,17 +143,20 @@ belongs to the consumer.
 
 ## Examples
 
-Before — a CLI must pull in cgo SQLite just to read a roster:
+Before — the constructor demands a `*sql.DB` argument even to read a roster
+(you can pass `nil`, but `mattn/go-sqlite3` is still in the module's `go.mod`
+and `go.sum`):
 
 ```go
-db, _ := sql.Open("sqlite3", "./fantasy.db") // cgo required
-client := yahoo.NewClient("", "", db)         // db mandatory
+client := yahoo.NewClient("", "", nil) // db arg mandatory; nil is legal
+// sqlite is only actually compiled if the *consumer* imports the driver
 ```
 
-After — the SDK has no storage dependency; the app owns its DB:
+After — the constructor takes no storage argument and the SDK module no longer
+declares sqlite; the application owns its DB:
 
 ```go
-// library user (pure Go)
+// library user
 client, _ := yahoo.NewClient(yahoo.WithHTTPClient(httpClient))
 
 // application (cmd/nba-tool) owns SQLite and scoring
@@ -149,10 +165,14 @@ app := nbatool.New(db, scoringConfig, client)
 
 ## Success Metrics
 
-- `go list -deps ./pkg/yahoo/...` contains **no** `mattn/go-sqlite3`.
-- A consumer can `go build` a program using `pkg/yahoo` with
-  `CGO_ENABLED=0`.
+- `mattn/go-sqlite3` no longer appears in the SDK module's `go.mod` / `go.sum`,
+  so it drops out of consumers' module graphs and vulnerability scans. (The
+  compiled-deps checks below — no sqlite in `go list -deps ./pkg/yahoo/...`, and
+  a `CGO_ENABLED=0` build of a `pkg/yahoo` consumer — already pass at `v1.5.0`;
+  they are regression guards, not the change this ADR delivers.)
 - CI import-direction check passes (SDK never imports application packages).
+- The constructor no longer requires a `*sql.DB` argument (see
+  [ADR-0003](./0003-options-constructor.md)).
 - No further correctness findings filed against `pkg/yahoo` that actually
   originate in application logic.
 
@@ -173,13 +193,18 @@ app := nbatool.New(db, scoringConfig, client)
 - Prefer the `cmd/` approach over a second module until the application has
   external users; revisit if release cadences diverge.
 - Open question: whether the SQLite cache implementation is kept as an optional
-  sub-package (e.g. `pkg/yahoo/sqlitecache`) that users opt into, so cgo is
-  strictly opt-in rather than removed.
+  sub-package (e.g. `pkg/yahoo/sqlitecache`) that users opt into.
+- **Amended 2026-07-24:** an earlier draft claimed importing the client forced
+  cgo on all consumers. Verified against `v1.5.0` that this is false —
+  `pkg/yahoo` registers no sqlite driver, so `pkg/yahoo`-only consumers already
+  build with `CGO_ENABLED=0` and carry no sqlite in their compiled deps. The
+  motivation was corrected to graph hygiene (removing the *declared* sqlite
+  requirement from the SDK module) plus cohesion; the decision itself stands.
 
 ---
 
-**Decision Date**: 2026-07-24
+**Decision Date**: 2026-07-24 (amended 2026-07-24 — corrected cgo claim)
 **Participants**: Maintainer; maintainable-architect-v4 review
 **Outcome**: Proposed — separate the reusable SDK (`pkg/yahoo`) from the bundled
-NBA application (`pkg/service`, `pkg/repository`), removing mandatory cgo SQLite
-from the library and depending downward only.
+NBA application (`pkg/service`, `pkg/repository`), removing the *declared* SQLite
+requirement from the SDK module and depending downward only.

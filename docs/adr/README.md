@@ -48,7 +48,7 @@ Each ADR follows this structure:
 
 ### ADR-0002: Separate the Reusable SDK from the Bundled Application
 
-**Decision** (Proposed): Draw a hard boundary between `pkg/yahoo` (the reusable, read-only SDK) and `pkg/service` + `pkg/repository` (an opinionated NBA application). Move the application code to `cmd/`, remove the mandatory cgo SQLite dependency from the library, and depend downward only. Addresses assessment finding C1.
+**Decision** (Proposed): Draw a hard boundary between `pkg/yahoo` (the reusable, read-only SDK) and `pkg/service` + `pkg/repository` (an opinionated NBA application). Move the application code to `cmd/`, drop the declared SQLite requirement from the SDK module (graph hygiene — `pkg/yahoo`-only consumers already build cgo-free), and depend downward only. Addresses assessment finding C1.
 
 ### ADR-0003: Options-Based Constructor with Typed Configuration Errors
 
