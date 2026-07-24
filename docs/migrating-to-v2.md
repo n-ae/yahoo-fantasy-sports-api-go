@@ -20,7 +20,8 @@ import "github.com/n-ae/yahoo-fantasy-sports-api-go/v2/pkg/yahoo"
 go get github.com/n-ae/yahoo-fantasy-sports-api-go/v2@v2.0.0
 ```
 
-The `v1.x` line remains available and maintained on the `v1-maintenance` branch.
+The `v1.x` line is retired (no longer maintained) but remains installable at its
+existing `v1.x` tags.
 
 ## 2. Constructor
 

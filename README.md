@@ -33,7 +33,8 @@ go get github.com/n-ae/yahoo-fantasy-sports-api-go/v2
 ```
 
 > Upgrading from v1? See [docs/migrating-to-v2.md](docs/migrating-to-v2.md).
-> The `v1.x` line is maintained on the `v1-maintenance` branch.
+> The `v1.x` line is retired (no longer maintained) but remains installable at
+> its existing `v1.x` tags.
 
 ## Quick Start
 
@@ -647,9 +648,9 @@ Pin an exact version and use `go.sum` for reproducible builds:
 go get github.com/n-ae/yahoo-fantasy-sports-api-go/v2@v2.0.0
 ```
 
-The `v1.x` line is maintained on the `v1-maintenance` branch; its retractions
-(`v1.4.9`, `v1.4.9-extension.1`, the abandoned `v0.2.x` line) live in that
-branch's `go.mod`.
+The `v1.x` line is retired (no longer maintained) but remains installable at its
+existing `v1.x` tags; its retractions (`v1.4.9`, `v1.4.9-extension.1`, the
+abandoned `v0.2.x` line) live in the `go.mod` of those tags (e.g. `v1.9.1`).
 
 ## Contributing
 
