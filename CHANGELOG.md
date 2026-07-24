@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.2.8] - 2026-07-25
+
+### Fixed
+- `NewClient` now validates authentication combinations at construction instead of deferring the failure to the first request: a consumer key and secret must be set together, and a refresh token requires consumer credentials (it is a Basic-auth grant). Valid setups — access token only, credentials + full tokens, credentials + refresh without an access token, or no auth at all — are unchanged. The lone genuinely-new finding from [maintainability assessment 0004](docs/assessments/0004-maintainable-architect-v4-assessment.md); recorded as accepted in [ADR-0007](docs/adr/0007-declined-hardening.md).
+
 ## [2.2.7] - 2026-07-24
 
 The three cheap correctness wins from [maintainability assessment 0003](docs/assessments/0003-maintainable-architect-v4-assessment.md), plus a scope-honesty doc fix. The remaining assessment items are recorded as deliberately out of scope in [ADR-0007](docs/adr/0007-declined-hardening.md).

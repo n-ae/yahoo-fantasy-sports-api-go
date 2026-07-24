@@ -76,6 +76,34 @@ func TestURLValidation(t *testing.T) {
 	}
 }
 
+func TestAuthComboValidation(t *testing.T) {
+	// Invalid combinations must fail at construction.
+	bad := map[string][]Option{
+		"key without secret":    {WithCredentials("k", "")},
+		"secret without key":    {WithCredentials("", "s")},
+		"refresh without creds": {WithTokens("a", "refresh-only")},
+		"refresh with key only": {WithCredentials("k", ""), WithTokens("a", "r")},
+	}
+	for name, opts := range bad {
+		if _, err := NewClient(opts...); err == nil {
+			t.Errorf("%s: expected construction error, got nil", name)
+		}
+	}
+
+	// Valid combinations must succeed.
+	good := map[string][]Option{
+		"access token only":          {WithTokens("a", "")},
+		"creds + full tokens":        {WithCredentials("k", "s"), WithTokens("a", "r")},
+		"creds + refresh, no access": {WithCredentials("k", "s"), WithTokens("", "r")},
+		"nothing":                    {}, // deferred config; fails later at request time
+	}
+	for name, opts := range good {
+		if _, err := NewClient(opts...); err != nil {
+			t.Errorf("%s: unexpected error: %v", name, err)
+		}
+	}
+}
+
 type errCache struct{}
 
 func (errCache) Get(context.Context, string) ([]byte, bool, error) {

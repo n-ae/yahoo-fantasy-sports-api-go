@@ -49,6 +49,7 @@ func newRefreshingServers(t *testing.T) (api, token *httptest.Server) {
 func clientForRefresh(t *testing.T, api, token *httptest.Server, opts ...Option) *Client {
 	t.Helper()
 	base := []Option{
+		WithCredentials("k", "s"),
 		WithTokens("old-token", "old-refresh"),
 		WithBaseURL(api.URL),
 		WithTokenURL(token.URL),

@@ -41,8 +41,11 @@ validation, injectable HTTP/cache/logger, dynamic game-key discovery,
 pagination for transactions/draft, `DecodeWarning`, the SDK/app split,
 `FromEnv` precedence, `Roster.TeamID`, `SlotUnknown`, URL validation
 (incl. query/fragment/user-info rejection), refresh-response validation
-(empty `access_token` / non-positive `expires_in`), and direct endpoint-fetcher
-tests. These are correctness or low-cost wins with clear value even for one user.
+(empty `access_token` / non-positive `expires_in`), direct endpoint-fetcher
+tests, and auth-combination validation at construction (v2.2.8: reject a
+key without secret or vice versa, and a refresh token without consumer
+credentials). These are correctness or low-cost wins with clear value even for
+one user.
 
 ### Declined (out of scope unless a trigger below fires)
 

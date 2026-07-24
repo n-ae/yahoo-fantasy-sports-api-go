@@ -283,6 +283,14 @@ func NewClient(opts ...Option) (*Client, error) {
 	if cfg.cacheEnabled && cfg.cache == nil {
 		return nil, fmt.Errorf("yahoo: caching enabled but no cache configured (use WithCache or WithSQLiteCache)")
 	}
+	// Fail fast on inconsistent auth: a consumer key/secret must be set together,
+	// and a refresh token is useless without them (refresh is a Basic-auth grant).
+	if (cfg.apiKey == "") != (cfg.apiSecret == "") {
+		return nil, fmt.Errorf("yahoo: consumer key and secret must be configured together")
+	}
+	if cfg.refreshToken != "" && (cfg.apiKey == "" || cfg.apiSecret == "") {
+		return nil, fmt.Errorf("yahoo: a refresh token requires consumer credentials (WithCredentials)")
+	}
 	if cfg.logger == nil {
 		cfg.logger = noopLogger{}
 	}
