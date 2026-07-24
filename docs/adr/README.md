@@ -23,6 +23,7 @@ Each ADR follows this structure:
 | [0002](./0002-separate-sdk-from-application.md) | Separate the Reusable SDK from the Bundled Application | Proposed | 2026-07-24 |
 | [0003](./0003-options-constructor.md) | Options-Based Constructor with Typed Configuration Errors | Proposed | 2026-07-24 |
 | [0004](./0004-token-persistence.md) | OAuth Token Persistence | Accepted | 2026-07-24 |
+| [0005](./0005-dynamic-game-key-discovery.md) | Dynamic Game-Key Discovery | Accepted | 2026-07-24 |
 
 ## Decision Summary
 
@@ -63,9 +64,8 @@ Each ADR follows this structure:
 
 Planned topics for future architectural decisions:
 
-- **ADR-0005**: Dynamic game-key discovery vs. the static `games.go` map
 - **ADR-0006**: Sport-specific stat definitions and mappings (NFL, MLB, NHL)
-- **ADR-0007**: CLI tool architecture for data export (the SDK/app split target)
+- **ADR-0007**: Pagination and iterators for collection endpoints (transactions, draft)
 
 ## Contributing
 

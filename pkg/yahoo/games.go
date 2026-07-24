@@ -1,8 +1,11 @@
 package yahoo
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 var gameIDMap = map[string]map[string]int{
@@ -58,4 +61,93 @@ func GetGameKey(gameCode string, season int) (string, error) {
 		return "", err
 	}
 	return strconv.Itoa(gameID), nil
+}
+
+// GameKey resolves the Yahoo game key for a sport code and season.
+//
+// It first consults the built-in static map (offline, no request), which covers
+// the seasons GetGameKey knows. On a miss — e.g. a season newer than the shipped
+// map — it queries Yahoo's games resource and caches the result. Unlike the
+// package-level GetGameKey, this requires a configured client and may perform a
+// network request. See docs/adr/0005-dynamic-game-key-discovery.md.
+func (c *Client) GameKey(ctx context.Context, gameCode string, season int) (string, error) {
+	if key, err := GetGameKey(gameCode, season); err == nil {
+		return key, nil
+	}
+
+	cacheKey := fmt.Sprintf("gamekey:%s:%d", gameCode, season)
+	if v, ok := cacheGet[string](ctx, c, cacheKey); ok {
+		return v, nil
+	}
+
+	endpoint := fmt.Sprintf("games;game_codes=%s;seasons=%d", gameCode, season)
+	data, err := c.makeRequest(ctx, endpoint)
+	if err != nil {
+		return "", err
+	}
+
+	key, err := parseGameKey(data)
+	if err != nil {
+		return "", fmt.Errorf("discover game key for %s %d: %w", gameCode, season, err)
+	}
+
+	// Game keys are stable for a season; cache generously.
+	cacheSet(ctx, c, cacheKey, key, 30*24*time.Hour)
+	return key, nil
+}
+
+// parseGameKey extracts a game_key from a Yahoo games-resource response. Yahoo's
+// games collection is an object with numbered string keys plus "count", and each
+// "game" may be an array or a single object — handle both defensively.
+func parseGameKey(data []byte) (string, error) {
+	var resp struct {
+		FantasyContent struct {
+			Games json.RawMessage `json:"games"`
+		} `json:"fantasy_content"`
+	}
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return "", fmt.Errorf("parse games response: %w", err)
+	}
+
+	var games map[string]json.RawMessage
+	if err := json.Unmarshal(resp.FantasyContent.Games, &games); err != nil {
+		return "", fmt.Errorf("parse games collection: %w", err)
+	}
+
+	for k, v := range games {
+		if k == "count" {
+			continue
+		}
+		var entry struct {
+			Game json.RawMessage `json:"game"`
+		}
+		if json.Unmarshal(v, &entry) != nil {
+			continue
+		}
+		if key := extractGameKey(entry.Game); key != "" {
+			return key, nil
+		}
+	}
+	return "", fmt.Errorf("no game found in response")
+}
+
+// extractGameKey reads game_key from a "game" value that may be either an array
+// whose first element carries the metadata, or a single metadata object.
+func extractGameKey(raw json.RawMessage) string {
+	type gameMeta struct {
+		GameKey string `json:"game_key"`
+	}
+	var arr []gameMeta
+	if json.Unmarshal(raw, &arr) == nil {
+		for _, g := range arr {
+			if g.GameKey != "" {
+				return g.GameKey
+			}
+		}
+	}
+	var single gameMeta
+	if json.Unmarshal(raw, &single) == nil {
+		return single.GameKey
+	}
+	return ""
 }

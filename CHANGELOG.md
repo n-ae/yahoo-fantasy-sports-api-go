@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.1.0] - 2026-07-24
+
+### Added
+- `Client.GameKey(ctx, gameCode, season)` — resolves a Yahoo game key with runtime discovery for seasons beyond the built-in static map (which ends at 2025). It uses the static map as an offline fast path (no request for known seasons), queries Yahoo's `games` resource on a miss, and caches the result. Fixes `GetGameKey` returning an error for current/future seasons (assessment m2). See [ADR-0005](docs/adr/0005-dynamic-game-key-discovery.md). The package-level `GetGameID`/`GetGameKey` remain unchanged as the offline lookup.
+
 ## [2.0.0] - 2026-07-24
 
 Breaking release completing the [v2 roadmap](docs/v2-roadmap.md). See [docs/migrating-to-v2.md](docs/migrating-to-v2.md).

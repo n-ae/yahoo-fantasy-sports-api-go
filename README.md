@@ -151,15 +151,23 @@ request (the rotated token is valid in memory). Retry behavior can be tuned with
 
 ### Game ID Mapping
 
-Get Yahoo game IDs for different sports and seasons:
+Offline lookup from the built-in static map (no request; covers 2001–2025):
 
 ```go
 gameID, err := yahoo.GetGameID("nfl", 2024)  // Returns: 449
 gameKey, err := yahoo.GetGameKey("mlb", 2023) // Returns: "422"
 ```
 
-Supported game codes: `nfl`, `mlb`, `nba`, `nhl`
-Supported seasons: 2001-2025
+For seasons beyond the static map (e.g. the current season), use runtime
+discovery, which falls back to Yahoo's `games` resource and caches the result:
+
+```go
+gameKey, err := client.GameKey(ctx, "nba", 2026) // static miss -> discovered from Yahoo
+```
+
+`GameKey` uses the static map as a fast path (no request for known seasons) and
+only queries Yahoo for what it doesn't know. Supported game codes: `nfl`, `mlb`,
+`nba`, `nhl`.
 
 ### Leagues
 
