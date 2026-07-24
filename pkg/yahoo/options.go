@@ -5,9 +5,29 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
+
+// validateHTTPURL rejects empty, malformed, or non-http(s) URLs so
+// misconfiguration fails at construction instead of on the first request.
+func validateHTTPURL(name, raw string) error {
+	if raw == "" {
+		return fmt.Errorf("yahoo: %s requires a non-empty URL", name)
+	}
+	u, err := url.ParseRequestURI(raw)
+	if err != nil {
+		return fmt.Errorf("yahoo: %s is not a valid URL: %w", name, err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("yahoo: %s must use http or https, got %q", name, u.Scheme)
+	}
+	if u.Host == "" {
+		return fmt.Errorf("yahoo: %s must include a host", name)
+	}
+	return nil
+}
 
 const (
 	defaultBaseURL  = "https://fantasysports.yahooapis.com/fantasy/v2"
@@ -123,8 +143,8 @@ func WithHTTPClient(d HTTPDoer) Option {
 // WithBaseURL overrides the Yahoo Fantasy API base URL (useful for testing).
 func WithBaseURL(u string) Option {
 	return func(c *config) error {
-		if u == "" {
-			return fmt.Errorf("yahoo: WithBaseURL requires a non-empty URL")
+		if err := validateHTTPURL("base URL", u); err != nil {
+			return err
 		}
 		c.baseURL = u
 		c.baseURLExplicit = true
@@ -135,8 +155,8 @@ func WithBaseURL(u string) Option {
 // WithTokenURL overrides the OAuth token endpoint (useful for testing).
 func WithTokenURL(u string) Option {
 	return func(c *config) error {
-		if u == "" {
-			return fmt.Errorf("yahoo: WithTokenURL requires a non-empty URL")
+		if err := validateHTTPURL("token URL", u); err != nil {
+			return err
 		}
 		c.tokenURL = u
 		return nil

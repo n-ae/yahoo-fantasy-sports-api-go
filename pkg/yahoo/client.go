@@ -71,6 +71,9 @@ const (
 	SlotStarting SlotState = "starting"
 	SlotBench    SlotState = "bench"
 	SlotInjured  SlotState = "injured"
+	// SlotUnknown is used when Yahoo omits the selected position, so an absent
+	// slot is not silently treated as a starter.
+	SlotUnknown SlotState = "unknown"
 )
 
 type Roster struct {
@@ -86,10 +89,13 @@ type Roster struct {
 }
 
 // classifySlot maps a Yahoo selected_position value to a coarse lineup state.
-// "BN" is the bench; injured/inactive slots include IL*, IR*, and NA; anything
-// else is treated as an active starting slot.
+// An empty value (Yahoo omitted the slot) is Unknown rather than starting; "BN"
+// is the bench; injured/inactive slots include IL*, IR*, and NA; any other
+// non-empty value is treated as an active starting slot.
 func classifySlot(pos string) SlotState {
 	switch {
+	case pos == "":
+		return SlotUnknown
 	case pos == "BN":
 		return SlotBench
 	case pos == "NA" || strings.HasPrefix(pos, "IL") || strings.HasPrefix(pos, "IR"):
@@ -331,7 +337,7 @@ func (c *Client) doRefresh(ctx context.Context, usedToken string) (Token, bool, 
 func (c *Client) makeRequest(ctx context.Context, endpoint string) ([]byte, error) {
 	token := c.currentAccessToken()
 	if token == "" {
-		return nil, fmt.Errorf("Yahoo access token not configured - set YAHOO_ACCESS_TOKEN environment variable")
+		return nil, fmt.Errorf("yahoo: no access token configured (use WithTokens, or FromEnv with YAHOO_ACCESS_TOKEN)")
 	}
 
 	reqURL := fmt.Sprintf("%s/%s?format=json", c.baseURL, endpoint)
@@ -547,31 +553,43 @@ func (c *apiCache) Set(ctx context.Context, key string, value []byte, ttl time.D
 }
 
 // cacheGet returns a cached, JSON-decoded value of type T, or ok=false on a
-// cache miss, disabled cache, or any decode/store error (caching is advisory).
+// cache miss, disabled cache, or any decode/store error. Caching is advisory —
+// errors never fail the request — but they are logged so a broken cache is
+// observable instead of silently degrading to no-cache.
 func cacheGet[T any](ctx context.Context, c *Client, key string) (T, bool) {
 	var zero T
 	if !c.cacheEnabled {
 		return zero, false
 	}
 	b, ok, err := c.cache.Get(ctx, key)
-	if err != nil || !ok {
+	if err != nil {
+		c.logger.Printf("yahoo: cache get %q failed: %v", key, err)
+		return zero, false
+	}
+	if !ok {
 		return zero, false
 	}
 	var v T
-	if json.Unmarshal(b, &v) != nil {
+	if err := json.Unmarshal(b, &v); err != nil {
+		c.logger.Printf("yahoo: cache decode %q failed: %v", key, err)
 		return zero, false
 	}
 	return v, true
 }
 
-// cacheSet JSON-encodes v and stores it under key. Errors are ignored: caching
-// is best-effort and never affects correctness.
+// cacheSet JSON-encodes v and stores it under key. Errors are advisory (they do
+// not affect correctness) but are logged so a broken cache is observable.
 func cacheSet(ctx context.Context, c *Client, key string, v any, ttl time.Duration) {
 	if !c.cacheEnabled {
 		return
 	}
-	if b, err := json.Marshal(v); err == nil {
-		_ = c.cache.Set(ctx, key, b, ttl)
+	b, err := json.Marshal(v)
+	if err != nil {
+		c.logger.Printf("yahoo: cache encode %q failed: %v", key, err)
+		return
+	}
+	if err := c.cache.Set(ctx, key, b, ttl); err != nil {
+		c.logger.Printf("yahoo: cache set %q failed: %v", key, err)
 	}
 }
 

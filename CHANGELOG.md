@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.2.3] - 2026-07-24
+
+### Added
+- `SlotUnknown` slot state — a roster entry with no `selected_position` from Yahoo is now classified `SlotUnknown` (and `IsStarting == false`) instead of being silently treated as a starter.
+
+### Fixed
+- `Client.GameKey` rejects an unknown sport code locally instead of making a doomed network request (`GameKey(ctx, "soccer", …)` now errors without a call).
+- `WithBaseURL` / `WithTokenURL` validate URL syntax and scheme at construction, so a malformed URL fails immediately rather than on the first request.
+- Cache backend/encode/decode errors are now logged via the injected `Logger` (still advisory — they never fail a request), so a broken cache is observable instead of silently degrading.
+- The "no access token configured" error now points at `WithTokens`/`FromEnv` rather than only the `YAHOO_ACCESS_TOKEN` environment variable.
+
 ## [2.2.2] - 2026-07-24
 
 ### Fixed

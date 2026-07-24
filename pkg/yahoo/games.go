@@ -71,6 +71,11 @@ func GetGameKey(gameCode string, season int) (string, error) {
 // package-level GetGameKey, this requires a configured client and may perform a
 // network request. See docs/adr/0005-dynamic-game-key-discovery.md.
 func (c *Client) GameKey(ctx context.Context, gameCode string, season int) (string, error) {
+	// Reject an unknown sport locally rather than sending a doomed request.
+	if _, ok := gameIDMap[gameCode]; !ok {
+		return "", fmt.Errorf("invalid game code '%s', must be 'mlb', 'nba', 'nhl', or 'nfl'", gameCode)
+	}
+
 	if key, err := GetGameKey(gameCode, season); err == nil {
 		return key, nil
 	}
