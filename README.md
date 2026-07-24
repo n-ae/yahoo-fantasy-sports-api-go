@@ -316,6 +316,33 @@ for _, trans := range transactions {
 }
 ```
 
+#### Pagination
+
+`GetLeagueTransactions` and `GetLeagueDraftResults` use Yahoo's default page. For
+explicit paging, use the `Page` variants with `PageOptions`:
+
+```go
+page, err := client.GetLeagueTransactionsPage(ctx, leagueKey, yahoo.PageOptions{Start: 0, Count: 25})
+```
+
+To retrieve everything, loop until a short page:
+
+```go
+var all []yahoo.Transaction
+for start := 0; ; start += 25 {
+    page, err := client.GetLeagueTransactionsPage(ctx, leagueKey, yahoo.PageOptions{Start: start, Count: 25})
+    if err != nil {
+        return err
+    }
+    all = append(all, page...)
+    if len(page) < 25 {
+        break
+    }
+}
+```
+
+`GetLeagueDraftResultsPage` works the same way.
+
 ## Data Structures
 
 ### League

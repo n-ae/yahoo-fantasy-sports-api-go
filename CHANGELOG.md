@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.2.0] - 2026-07-24
+
+### Added
+- Pagination for collection endpoints (assessment m4): new `PageOptions{Start, Count}` type and `GetLeagueTransactionsPage` / `GetLeagueDraftResultsPage` methods that append Yahoo's `;start=N;count=M` segment. The existing `GetLeagueTransactions` / `GetLeagueDraftResults` are unchanged and delegate with the zero `PageOptions` (Yahoo default). See [ADR-0006](docs/adr/0006-pagination.md).
+
 ## [2.1.0] - 2026-07-24
 
 ### Added

@@ -24,6 +24,7 @@ Each ADR follows this structure:
 | [0003](./0003-options-constructor.md) | Options-Based Constructor with Typed Configuration Errors | Proposed | 2026-07-24 |
 | [0004](./0004-token-persistence.md) | OAuth Token Persistence | Accepted | 2026-07-24 |
 | [0005](./0005-dynamic-game-key-discovery.md) | Dynamic Game-Key Discovery | Accepted | 2026-07-24 |
+| [0006](./0006-pagination.md) | Pagination for Collection Endpoints | Accepted | 2026-07-24 |
 
 ## Decision Summary
 
@@ -64,8 +65,7 @@ Each ADR follows this structure:
 
 Planned topics for future architectural decisions:
 
-- **ADR-0006**: Sport-specific stat definitions and mappings (NFL, MLB, NHL)
-- **ADR-0007**: Pagination and iterators for collection endpoints (transactions, draft)
+- **ADR-0007**: Sport-specific stat definitions and mappings (NFL, MLB, NHL)
 
 ## Contributing
 

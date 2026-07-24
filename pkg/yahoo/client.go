@@ -635,14 +635,22 @@ func (c *Client) GetLeagueMatchups(ctx context.Context, leagueKey string, weekNu
 	return matchups, nil
 }
 
+// GetLeagueDraftResults returns draft results using Yahoo's default paging.
+// For explicit pagination use GetLeagueDraftResultsPage.
 func (c *Client) GetLeagueDraftResults(ctx context.Context, leagueKey string) ([]DraftResult, error) {
-	cacheKey := fmt.Sprintf("league:%s:draft_results", leagueKey)
+	return c.GetLeagueDraftResultsPage(ctx, leagueKey, PageOptions{})
+}
+
+// GetLeagueDraftResultsPage returns one page of draft results per the given
+// PageOptions.
+func (c *Client) GetLeagueDraftResultsPage(ctx context.Context, leagueKey string, page PageOptions) ([]DraftResult, error) {
+	cacheKey := fmt.Sprintf("league:%s:draft_results:%d:%d", leagueKey, page.Start, page.Count)
 
 	if v, ok := cacheGet[[]DraftResult](ctx, c, cacheKey); ok {
 		return v, nil
 	}
 
-	results, err := c.fetchDraftResults(ctx, leagueKey)
+	results, err := c.fetchDraftResults(ctx, leagueKey, page)
 	if err != nil {
 		return nil, err
 	}
@@ -651,14 +659,22 @@ func (c *Client) GetLeagueDraftResults(ctx context.Context, leagueKey string) ([
 	return results, nil
 }
 
+// GetLeagueTransactions returns transactions using Yahoo's default paging. For
+// explicit pagination use GetLeagueTransactionsPage.
 func (c *Client) GetLeagueTransactions(ctx context.Context, leagueKey string) ([]Transaction, error) {
-	cacheKey := fmt.Sprintf("league:%s:transactions", leagueKey)
+	return c.GetLeagueTransactionsPage(ctx, leagueKey, PageOptions{})
+}
+
+// GetLeagueTransactionsPage returns one page of transactions per the given
+// PageOptions.
+func (c *Client) GetLeagueTransactionsPage(ctx context.Context, leagueKey string, page PageOptions) ([]Transaction, error) {
+	cacheKey := fmt.Sprintf("league:%s:transactions:%d:%d", leagueKey, page.Start, page.Count)
 
 	if v, ok := cacheGet[[]Transaction](ctx, c, cacheKey); ok {
 		return v, nil
 	}
 
-	transactions, err := c.fetchTransactions(ctx, leagueKey)
+	transactions, err := c.fetchTransactions(ctx, leagueKey, page)
 	if err != nil {
 		return nil, err
 	}
@@ -751,8 +767,8 @@ func (c *Client) fetchMatchups(ctx context.Context, leagueKey string, weekNum in
 	return matchups, nil
 }
 
-func (c *Client) fetchDraftResults(ctx context.Context, leagueKey string) ([]DraftResult, error) {
-	endpoint := fmt.Sprintf("league/%s/draftresults", leagueKey)
+func (c *Client) fetchDraftResults(ctx context.Context, leagueKey string, page PageOptions) ([]DraftResult, error) {
+	endpoint := fmt.Sprintf("league/%s/draftresults%s", leagueKey, page.suffix())
 	data, err := c.makeRequest(ctx, endpoint)
 	if err != nil {
 		return nil, err
@@ -771,8 +787,8 @@ func (c *Client) fetchDraftResults(ctx context.Context, leagueKey string) ([]Dra
 	return results, nil
 }
 
-func (c *Client) fetchTransactions(ctx context.Context, leagueKey string) ([]Transaction, error) {
-	endpoint := fmt.Sprintf("league/%s/transactions", leagueKey)
+func (c *Client) fetchTransactions(ctx context.Context, leagueKey string, page PageOptions) ([]Transaction, error) {
+	endpoint := fmt.Sprintf("league/%s/transactions%s", leagueKey, page.suffix())
 	data, err := c.makeRequest(ctx, endpoint)
 	if err != nil {
 		return nil, err
