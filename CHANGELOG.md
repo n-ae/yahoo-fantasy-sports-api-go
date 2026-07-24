@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.2.4] - 2026-07-24
+
+### Documentation
+- Recorded that [maintainability assessment 0002](docs/assessments/0002-maintainable-architect-v4-assessment.md) is **fully closed**: 2.2.2 fixed the three confirmed defects (FromEnv base-URL precedence, `DecodeWarning` JSON round-trip, `Roster.TeamID`) and 2.2.3 landed the cheap correctness items. Remaining assessment items are multi-user-SaaS gold-plating the review recommended a solo project decline. No code changes.
+
 ## [2.2.3] - 2026-07-24
 
 ### Added
@@ -10,9 +15,6 @@
 - `WithBaseURL` / `WithTokenURL` validate URL syntax and scheme at construction, so a malformed URL fails immediately rather than on the first request.
 - Cache backend/encode/decode errors are now logged via the injected `Logger` (still advisory — they never fail a request), so a broken cache is observable instead of silently degrading.
 - The "no access token configured" error now points at `WithTokens`/`FromEnv` rather than only the `YAHOO_ACCESS_TOKEN` environment variable.
-
-### Notes
-- Together with 2.2.2, this release **closes every actionable finding** from [maintainability assessment 0002](docs/assessments/0002-maintainable-architect-v4-assessment.md) (2.2.2 fixed the three confirmed defects; 2.2.3 landed the cheap correctness items). Remaining assessment items are multi-user-SaaS gold-plating the review recommended a solo project decline.
 
 ## [2.2.2] - 2026-07-24
 
