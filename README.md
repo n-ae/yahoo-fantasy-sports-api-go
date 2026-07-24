@@ -1,6 +1,12 @@
 # Yahoo Fantasy Sports API - Go SDK
 
+[![Release](https://img.shields.io/github/v/release/n-ae/yahoo-fantasy-sports-api-go?label=release&sort=semver)](https://github.com/n-ae/yahoo-fantasy-sports-api-go/releases/latest)
+[![Go Reference](https://pkg.go.dev/badge/github.com/n-ae/yahoo-fantasy-sports-api-go/v2.svg)](https://pkg.go.dev/github.com/n-ae/yahoo-fantasy-sports-api-go/v2)
+[![CI](https://github.com/n-ae/yahoo-fantasy-sports-api-go/actions/workflows/ci.yml/badge.svg)](https://github.com/n-ae/yahoo-fantasy-sports-api-go/actions/workflows/ci.yml)
+
 A comprehensive Go SDK for the Yahoo Fantasy Sports API with support for NFL, MLB, NBA, and NHL fantasy leagues.
+
+> **v2 is out** — options-based constructor, typed errors, bounded retries, and OAuth token persistence. `go get github.com/n-ae/yahoo-fantasy-sports-api-go/v2` · [migration guide](docs/migrating-to-v2.md)
 
 ## Features
 
