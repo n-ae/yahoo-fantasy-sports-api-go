@@ -54,13 +54,42 @@ type Team struct {
 	Rank          int
 }
 
+// SlotState classifies the lineup slot a player currently occupies.
+type SlotState string
+
+const (
+	SlotStarting SlotState = "starting"
+	SlotBench    SlotState = "bench"
+	SlotInjured  SlotState = "injured"
+)
+
 type Roster struct {
-	TeamID       string
-	PlayerID     string
-	PlayerKey    string
-	Position     string
-	SelectedPos  string
-	IsStarting   bool
+	TeamID    string
+	PlayerID  string
+	PlayerKey string
+	// Position is the player's primary eligible position, retained for
+	// backward compatibility. Prefer EligiblePositions for lineup logic.
+	Position          string
+	EligiblePositions []string
+	SelectedPos       string
+	SlotState         SlotState
+	// IsStarting reports whether the player occupies an active lineup slot
+	// (i.e. not bench, injured, or inactive).
+	IsStarting bool
+}
+
+// classifySlot maps a Yahoo selected_position value to a coarse lineup state.
+// "BN" is the bench; injured/inactive slots include IL*, IR*, and NA; anything
+// else is treated as an active starting slot.
+func classifySlot(pos string) SlotState {
+	switch {
+	case pos == "BN":
+		return SlotBench
+	case pos == "NA" || strings.HasPrefix(pos, "IL") || strings.HasPrefix(pos, "IR"):
+		return SlotInjured
+	default:
+		return SlotStarting
+	}
 }
 
 type yahooLeaguesResponse struct {
@@ -140,6 +169,28 @@ type tokenResponse struct {
 	RefreshToken string `json:"refresh_token"`
 	ExpiresIn    int    `json:"expires_in"`
 	TokenType    string `json:"token_type"`
+}
+
+// maxResponseBody caps how many bytes are read from a Yahoo response into
+// memory, preventing an unbounded or hostile body from exhausting memory.
+const maxResponseBody = 10 << 20 // 10 MiB
+
+// APIError is returned when Yahoo responds with a non-2xx status. It exposes
+// the status code, endpoint, and (bounded) response body so callers can branch
+// on failures with errors.As rather than string matching.
+type APIError struct {
+	StatusCode int
+	Endpoint   string
+	Body       string
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("Yahoo API error (status %d) for %q: %s", e.StatusCode, e.Endpoint, e.Body)
+}
+
+// readLimited reads r up to maxResponseBody bytes.
+func readLimited(r io.Reader) ([]byte, error) {
+	return io.ReadAll(io.LimitReader(r, maxResponseBody))
 }
 
 func NewClient(apiKey, apiSecret string, db *sql.DB) *Client {
@@ -270,7 +321,7 @@ func (c *Client) refreshAccessToken() error {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, _ := readLimited(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("token refresh failed (status %d): %s", resp.StatusCode, string(body))
 	}
@@ -310,7 +361,7 @@ func (c *Client) makeRequest(ctx context.Context, endpoint string) ([]byte, erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusUnauthorized {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := readLimited(resp.Body)
 		if strings.Contains(string(body), "token_expired") {
 			if err := c.refreshAccessToken(); err != nil {
 				return nil, fmt.Errorf("failed to refresh expired token: %w", err)
@@ -332,11 +383,11 @@ func (c *Client) makeRequest(ctx context.Context, endpoint string) ([]byte, erro
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Yahoo API error (status %d): %s", resp.StatusCode, string(body))
+		body, _ := readLimited(resp.Body)
+		return nil, &APIError{StatusCode: resp.StatusCode, Endpoint: endpoint, Body: string(body)}
 	}
 
-	return io.ReadAll(resp.Body)
+	return readLimited(resp.Body)
 }
 
 func (c *Client) fetchLeagues(ctx context.Context, gameKey string) ([]League, error) {
@@ -427,16 +478,23 @@ func (c *Client) fetchRoster(ctx context.Context, teamKey string) ([]Roster, err
 	var roster []Roster
 	for _, playerItem := range resp.Fantasy_Content.Team.Roster.Players {
 		p := playerItem.Player
-		eligiblePos := ""
-		if len(p.Eligible_Positions) > 0 {
-			eligiblePos = p.Eligible_Positions[0].Position
+		eligible := make([]string, 0, len(p.Eligible_Positions))
+		for _, ep := range p.Eligible_Positions {
+			eligible = append(eligible, ep.Position)
 		}
+		primary := ""
+		if len(eligible) > 0 {
+			primary = eligible[0]
+		}
+		slot := classifySlot(p.Selected_Position.Position)
 		roster = append(roster, Roster{
-			PlayerID:    p.Player_ID,
-			PlayerKey:   p.Player_Key,
-			Position:    eligiblePos,
-			SelectedPos: p.Selected_Position.Position,
-			IsStarting:  p.Selected_Position.Position != "BN",
+			PlayerID:          p.Player_ID,
+			PlayerKey:         p.Player_Key,
+			Position:          primary,
+			EligiblePositions: eligible,
+			SelectedPos:       p.Selected_Position.Position,
+			SlotState:         slot,
+			IsStarting:        slot == SlotStarting,
 		})
 	}
 
@@ -444,6 +502,10 @@ func (c *Client) fetchRoster(ctx context.Context, teamKey string) ([]Roster, err
 }
 
 func (c *APICache) Get(key string) (string, error) {
+	if c == nil || c.db == nil {
+		return "", fmt.Errorf("cache not configured: no database")
+	}
+
 	var value string
 	var expiresAt time.Time
 
@@ -462,6 +524,10 @@ func (c *APICache) Get(key string) (string, error) {
 }
 
 func (c *APICache) Set(key string, value interface{}, ttl time.Duration) error {
+	if c == nil || c.db == nil {
+		return fmt.Errorf("cache not configured: no database")
+	}
+
 	jsonValue, err := json.Marshal(value)
 	if err != nil {
 		return err
@@ -475,12 +541,20 @@ func (c *APICache) Set(key string, value interface{}, ttl time.Duration) error {
 }
 
 func (c *APICache) Delete(key string) error {
+	if c == nil || c.db == nil {
+		return fmt.Errorf("cache not configured: no database")
+	}
+
 	query := `DELETE FROM yahoo_api_cache WHERE cache_key = ?`
 	_, err := c.db.Exec(query, key)
 	return err
 }
 
 func (c *APICache) CleanExpired() error {
+	if c == nil || c.db == nil {
+		return fmt.Errorf("cache not configured: no database")
+	}
+
 	query := `DELETE FROM yahoo_api_cache WHERE expires_at < datetime('now')`
 	_, err := c.db.Exec(query)
 	return err
