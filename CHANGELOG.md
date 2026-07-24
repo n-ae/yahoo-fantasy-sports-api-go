@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.2.1] - 2026-07-24
+
+### Tests
+- Added CRUD tests for the `cmd/nba-tool/internal/repository` layer (league, team, roster) against an in-memory SQLite database, covering create/read/update/delete, ordering, nullable timestamps, and `sql.ErrNoRows` paths. Repository coverage 0% → ~87%. The test schema also documents the tables the app expects.
+
 ## [2.2.0] - 2026-07-24
 
 ### Added
