@@ -6,10 +6,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"time"
 )
 
 type ValuationService struct {
 	db *sql.DB
+
+	// Season is the NBA stats season to value against, formatted "YYYY-YY"
+	// (e.g. "2025-26"). Defaults to the current season derived from the clock
+	// when constructed via NewValuationService; override as needed.
+	Season string
+}
+
+// currentNBASeason returns the NBA season label ("YYYY-YY") for t. The season
+// starts in October, so months Oct-Dec belong to "year-year+1" and Jan-Sep to
+// "year-1-year".
+func currentNBASeason(t time.Time) string {
+	y := t.Year()
+	if int(t.Month()) < 10 {
+		y--
+	}
+	return fmt.Sprintf("%d-%02d", y, (y+1)%100)
 }
 
 type PlayerValue struct {
@@ -48,7 +65,7 @@ type ScoringSettings struct {
 }
 
 func NewValuationService(db *sql.DB) *ValuationService {
-	return &ValuationService{db: db}
+	return &ValuationService{db: db, Season: currentNBASeason(time.Now())}
 }
 
 func (s *ValuationService) CalculateAllPlayerValues(ctx context.Context, leagueID int) error {
@@ -250,6 +267,11 @@ func (s *ValuationService) getLeague(ctx context.Context, leagueID int) (*struct
 }
 
 func (s *ValuationService) getActivePlayersWithStats(ctx context.Context) ([]PlayerStats, error) {
+	season := s.Season
+	if season == "" {
+		season = currentNBASeason(time.Now())
+	}
+
 	query := `
 		SELECT p.id, COALESCE(pp.code, 'F') as primary_position,
 		       COALESCE(s.points_per_game, 0) as ppg,
@@ -264,11 +286,11 @@ func (s *ValuationService) getActivePlayersWithStats(ctx context.Context) ([]Pla
 		FROM players p
 		LEFT JOIN player_positions plp ON p.id = plp.player_id AND plp.is_primary = 1
 		LEFT JOIN positions pp ON plp.position_id = pp.id
-		LEFT JOIN nba_player_stats s ON p.id = s.player_id AND s.stat_type = 'season' AND s.season = '2024-25'
+		LEFT JOIN nba_player_stats s ON p.id = s.player_id AND s.stat_type = 'season' AND s.season = ?
 		WHERE p.is_active = 1
 	`
 
-	rows, err := s.db.QueryContext(ctx, query)
+	rows, err := s.db.QueryContext(ctx, query, season)
 	if err != nil {
 		return nil, err
 	}

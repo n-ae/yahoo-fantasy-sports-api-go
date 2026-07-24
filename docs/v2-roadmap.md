@@ -102,22 +102,39 @@ deprecation notice visible in godoc.
 **DoD:** a restart-safe token flow demonstrated in a test with a fake store;
 retry policy overridable; ADR-0004 merged; CHANGELOG/README updated.
 
-### Phase C — prep the application split (any time, non-breaking)
+### Phase C — prep the application split (any time, non-breaking) — DONE in v1.9.0
 
 Runs in parallel; nothing here breaks `v1`.
 
-- Move `pkg/service` + `pkg/repository` logic into `cmd/nba-tool/` (internal
-  packages), leaving thin shims in the old locations that call the new code, so
-  `v1` importers still work until `v2`.
-- While moving, fix the remaining `pkg/service` correctness bugs (assessment
-  M5): parameterize scoring (no hardcoded weights), derive the season instead
-  of `2024-25`, use `YahooGameKey` instead of `nba.l.%s`, surface skipped
-  players, replace the position→"F" fallback.
-- Add an import-direction CI check: fail if `pkg/yahoo` imports any application
-  package.
+**Decision (revised during implementation):** the original plan was to move the
+packages now behind alias shims. On implementation that was rejected — Go
+`internal/` packages can't be re-exported, and alias shims for deprecated code
+that is *deleted* in `v2` anyway are throwaway churn (the over-engineering this
+project avoids). Instead Phase C delivers the non-breaking substance and defers
+the physical relocation + the API-breaking M5 fixes to the `v2` cut (Phase D),
+where deletion is expected regardless.
 
-**DoD:** `cmd/nba-tool` builds and runs; `go list -deps ./pkg/yahoo/...` has no
-application imports; M5 items resolved in the moved code.
+Delivered in `v1.9.0`:
+
+- Added `cmd/nba-tool/` — a runnable CLI that wires the existing
+  `pkg/service` + `pkg/repository` on top of `pkg/yahoo`. The app now has a
+  concrete home (its permanent location in `v2`).
+- Deprecated `pkg/service` and `pkg/repository` (package doc comments) pointing
+  at their `v2` removal.
+- Added an import-direction CI check: fails if `pkg/yahoo` imports any
+  application package (already true; this locks it in).
+- Fixed the **non-breaking** M5 bugs: parameterized scoring
+  (`DefaultScoringSettings` + `LeagueService.ScoringSettings`), derive the NBA
+  season instead of hardcoding `2024-25` (`ValuationService.Season` +
+  `currentNBASeason`), and build the league key from the stored `YahooGameKey`
+  instead of `nba.l.%s`.
+
+Deferred to Phase D (require signature changes — done when the code moves and
+breakage is expected): surfacing skipped roster players, and the
+`getPlayerPosition` → "F" error-swallowing.
+
+**DoD (met):** `cmd/nba-tool` builds and runs; import-direction CI check passes;
+non-breaking M5 items resolved.
 
 ### Phase D — `v2.0.0` (major): the cut
 
@@ -126,8 +143,10 @@ Now mostly deletions and the module-path change.
 1. Change module path to `.../v2`; update internal imports and READMEs.
 2. Rename `NewClientWithOptions` → `NewClient` (positional constructor removed).
 3. Delete the deprecated positional constructor and any `v1` shims.
-4. Remove `pkg/service` / `pkg/repository` from the module (they live in
-   `cmd/` or a separate repo now).
+4. Move `pkg/service` / `pkg/repository` under `cmd/nba-tool/internal/` and
+   remove them from the module's public surface. During the move, finish the
+   remaining M5 fixes that need signature changes: surface skipped roster
+   players, and stop mapping `getPlayerPosition` scan errors to "F".
 5. Remove `mattn/go-sqlite3` from `go.mod`; the SQLite cache adapter, if kept,
    moves to an opt-in subpackage (e.g. `pkg/yahoo/sqlitecache`) or to `cmd/`.
 6. Tag `v2.0.0`; open a `v1-maintenance` branch.

@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.9.0] - 2026-07-24
+
+Third step of the [v2 roadmap](docs/v2-roadmap.md), Phase C — non-breaking prep for the SDK/application split.
+
+### Added
+- `cmd/nba-tool` — a runnable reference CLI for the NBA analytics application, wiring `pkg/service` + `pkg/repository` on top of the SDK. This is the app's permanent home (the service/repository packages move fully under it in v2).
+- CI now enforces import direction: the build fails if `pkg/yahoo` imports `pkg/service` or `pkg/repository`.
+
+### Fixed (application layer, assessment M5)
+- League import scoring is no longer hardcoded: `LeagueService.ScoringSettings` overrides the new exported `DefaultScoringSettings`.
+- Valuation no longer hardcodes the `2024-25` season: `ValuationService.Season` defaults to the current NBA season (derived from the clock via `currentNBASeason`).
+- League keys are built from the stored `YahooGameKey` (e.g. `454.l.<id>`) instead of the hardcoded `nba.l.<id>`.
+
+### Deprecated
+- `pkg/service` and `pkg/repository` — application code, not part of the reusable SDK. Scheduled to move under `cmd/nba-tool` and leave the module's public surface in v2.
+
 ## [1.8.0] - 2026-07-24
 
 Second step of the [v2 roadmap](docs/v2-roadmap.md), Phase B. See [ADR-0004](docs/adr/0004-token-persistence.md).

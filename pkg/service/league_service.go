@@ -11,12 +11,30 @@ import (
 	"github.com/n-ae/yahoo-fantasy-sports-api-go/pkg/yahoo"
 )
 
+// DefaultScoringSettings is the fallback fantasy scoring model used when a
+// LeagueService has no ScoringSettings configured. It is one opinionated
+// points model; override it per-service by setting LeagueService.ScoringSettings
+// (ideally from the league's actual Yahoo settings).
+var DefaultScoringSettings = map[string]float64{
+	"PTS": 1.0,
+	"REB": 1.2,
+	"AST": 1.5,
+	"STL": 3.0,
+	"BLK": 3.0,
+	"TO":  -1.0,
+	"3PM": 1.0,
+}
+
 type LeagueService struct {
 	yahooClient *yahoo.Client
 	leagueRepo  *repository.LeagueRepository
 	teamRepo    *repository.TeamRepository
 	rosterRepo  *repository.RosterRepository
 	db          *sql.DB
+
+	// ScoringSettings, when non-nil, overrides DefaultScoringSettings for
+	// imported leagues.
+	ScoringSettings map[string]float64
 }
 
 func NewLeagueService(
@@ -62,14 +80,9 @@ func (s *LeagueService) ImportLeague(ctx context.Context, yahooLeagueID string, 
 		return fmt.Errorf("league not found in user's leagues")
 	}
 
-	scoringSettings := map[string]float64{
-		"PTS": 1.0,
-		"REB": 1.2,
-		"AST": 1.5,
-		"STL": 3.0,
-		"BLK": 3.0,
-		"TO":  -1.0,
-		"3PM": 1.0,
+	scoringSettings := s.ScoringSettings
+	if scoringSettings == nil {
+		scoringSettings = DefaultScoringSettings
 	}
 	scoringJSON, _ := json.Marshal(scoringSettings)
 
@@ -96,7 +109,13 @@ func (s *LeagueService) ImportLeague(ctx context.Context, yahooLeagueID string, 
 }
 
 func (s *LeagueService) SyncTeamsAndRosters(ctx context.Context, leagueID int, yahooLeagueID string, userTeamID string) error {
-	leagueKey := fmt.Sprintf("nba.l.%s", yahooLeagueID)
+	// Build the Yahoo league key from the league's actual game key (e.g.
+	// "454.l.<id>") rather than assuming the current-season "nba" code.
+	gameKey := "nba"
+	if lg, err := s.leagueRepo.GetByYahooID(ctx, yahooLeagueID); err == nil && lg != nil && lg.YahooGameKey != "" {
+		gameKey = lg.YahooGameKey
+	}
+	leagueKey := fmt.Sprintf("%s.l.%s", gameKey, yahooLeagueID)
 
 	teams, err := s.yahooClient.GetLeagueTeams(ctx, leagueKey)
 	if err != nil {
