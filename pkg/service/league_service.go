@@ -157,7 +157,9 @@ func (s *LeagueService) SyncTeamsAndRosters(ctx context.Context, leagueID int, y
 		INSERT INTO sync_history (league_id, sync_type, sync_status, items_synced, completed_at)
 		VALUES (?, 'full', 'success', ?, ?)
 	`
-	s.db.ExecContext(ctx, syncQuery, leagueID, len(teams), now)
+	if _, err := s.db.ExecContext(ctx, syncQuery, leagueID, len(teams), now); err != nil {
+		return fmt.Errorf("failed to record sync history: %w", err)
+	}
 
 	return nil
 }

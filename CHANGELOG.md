@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.1] - 2026-07-24
+
+### Fixed
+- `ValuationService.savePlayerProjections` no longer panics on an empty player slice (guarded the `players[0]` dereference; empty input is now a no-op).
+- `LeagueService.SyncLeague` now surfaces the sync-history insert error instead of silently discarding it.
+
+### Notes
+- Strict numeric parsing (distinguishing a real `0` from a parse failure) is deferred to a `v1.6.0` minor release, since a useful fix requires new exported API.
+
 ## [1.5.0] - 2026-07-24
 
 ### Added

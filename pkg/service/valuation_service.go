@@ -199,6 +199,10 @@ func (s *ValuationService) rankPlayers(players []PlayerValue) {
 }
 
 func (s *ValuationService) savePlayerProjections(ctx context.Context, players []PlayerValue) error {
+	if len(players) == 0 {
+		return nil
+	}
+
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err

@@ -1,9 +1,19 @@
 package service
 
 import (
+	"context"
 	"math"
 	"testing"
 )
+
+// An empty player slice must not panic on players[0] and must be a no-op.
+func TestSavePlayerProjectionsEmpty(t *testing.T) {
+	// db is never touched because the guard returns before any query.
+	service := &ValuationService{}
+	if err := service.savePlayerProjections(context.Background(), nil); err != nil {
+		t.Fatalf("expected nil error for empty input, got %v", err)
+	}
+}
 
 func TestCalculatePlayerValue(t *testing.T) {
 	service := &ValuationService{}
