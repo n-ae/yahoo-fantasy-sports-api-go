@@ -20,6 +20,8 @@ Each ADR follows this structure:
 | ADR | Title | Status | Date |
 |-----|-------|--------|------|
 | [0001](./0001-expose-attempt-made-stats.md) | Expose Attempt and Made Stats in SDK | Accepted | 2025-10-28 |
+| [0002](./0002-separate-sdk-from-application.md) | Separate the Reusable SDK from the Bundled Application | Proposed | 2026-07-24 |
+| [0003](./0003-options-constructor.md) | Options-Based Constructor with Typed Configuration Errors | Proposed | 2026-07-24 |
 
 ## Decision Summary
 
@@ -44,15 +46,23 @@ Each ADR follows this structure:
 
 **Rationale**: Graduated API surface allows users to start simple and graduate to advanced usage as needed. Preserves backward compatibility while improving developer experience.
 
+### ADR-0002: Separate the Reusable SDK from the Bundled Application
+
+**Decision** (Proposed): Draw a hard boundary between `pkg/yahoo` (the reusable, read-only SDK) and `pkg/service` + `pkg/repository` (an opinionated NBA application). Move the application code to `cmd/`, remove the mandatory cgo SQLite dependency from the library, and depend downward only. Addresses assessment finding C1.
+
+### ADR-0003: Options-Based Constructor with Typed Configuration Errors
+
+**Decision** (Proposed): Replace `NewClient(apiKey, apiSecret string, db *sql.DB) *Client` with `NewClient(opts ...Option) (*Client, error)`. Validate configuration at construction, make the database optional, move environment loading behind an explicit `FromEnv()`, and inject HTTP/cache/logger dependencies. Addresses assessment findings M2, M3.
+
 ## Future ADRs
 
 Planned topics for future architectural decisions:
 
-- **ADR-0002**: Sport-specific stat definitions and mappings (NFL, MLB, NHL)
-- **ADR-0003**: Caching strategy for stat metadata and league settings
-- **ADR-0004**: Error handling patterns across API methods
-- **ADR-0005**: API rate limiting and retry strategies
-- **ADR-0006**: CLI tool architecture for data export
+- **ADR-0004**: Replace manual OAuth refresh with `oauth2.TokenSource` (single-flight + token persistence)
+- **ADR-0005**: HTTP resilience — rate-limit (429/Retry-After) and bounded 5xx retry strategy
+- **ADR-0006**: Dynamic game-key discovery vs. the static `games.go` map
+- **ADR-0007**: Sport-specific stat definitions and mappings (NFL, MLB, NHL)
+- **ADR-0008**: CLI tool architecture for data export
 
 ## Contributing
 
