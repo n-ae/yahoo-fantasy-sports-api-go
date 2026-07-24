@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.5.0] - 2026-07-24
+
+### Added
+- `APIError` type (status code, endpoint, body) returned for non-200 responses so callers can branch with `errors.As`.
+- `SlotState` type (`SlotStarting`, `SlotBench`, `SlotInjured`) and `Roster.EligiblePositions` / `Roster.SlotState` fields.
+
+### Fixed
+- Roster now preserves all eligible positions and classifies the selected slot; players in IL/IR/NA slots are no longer reported as starting (`IsStarting` was previously `true` for any non-bench slot).
+- `APICache` methods guard against a nil database instead of panicking when caching is enabled without a `*sql.DB`.
+- Response bodies are read through `io.LimitReader` (10 MiB cap) to bound memory use.
+- `examples/` now build under `go build ./...` (each example is its own `main` package).
+
+### Changed
+- Added a minimal CI workflow (`go vet`, `go build`, `go test -race`).
+- Retracted the abandoned `v0.2.x` line in `go.mod`.
+
 ## [Unreleased] - Feature Parity with Python yahoofantasy Package
 
 ### Added

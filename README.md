@@ -505,8 +505,26 @@ This SDK provides complete feature parity with the Python `yahoofantasy` package
 - ✅ Player filtering by status
 - ✅ Weekly and season stats
 - ✅ Draft results and transaction history
-- ✅ Game ID mapping for all sports (2001-2025)
+- ✅ Game ID mapping for all sports (2001-2025; extend `games.go` for later seasons)
 - ✅ Caching with configurable TTL
+
+## Versioning
+
+This module follows [Semantic Versioning](https://semver.org) within the `v1` line:
+
+- **Patch** (`v1.x.Y`) — bug fixes and internal changes with no API impact.
+- **Minor** (`v1.X.0`) — new backward-compatible exported API.
+- **Major** — reserved for breaking changes to the public `pkg/yahoo` API.
+
+Pin an exact version and use `go.sum` for reproducible builds:
+
+```bash
+go get github.com/n-ae/yahoo-fantasy-sports-api-go@v1.5.0
+```
+
+Retracted versions (see `go.mod`) must not be used: `v1.4.9`,
+`v1.4.9-extension.1`, and the abandoned `v0.2.x` line. Prefer the latest
+`v1` tag.
 
 ## Contributing
 
