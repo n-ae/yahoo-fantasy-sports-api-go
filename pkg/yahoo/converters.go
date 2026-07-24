@@ -1,10 +1,18 @@
 package yahoo
 
-import (
-	"strconv"
-)
+import "fmt"
 
 func convertYahooPlayerToPlayer(yp yahooPlayerData) Player {
+	var d decoder
+	player := convertYahooPlayerWith(&d, yp)
+	player.DecodeWarnings = d.warnings
+	return player
+}
+
+// convertYahooPlayerWith converts a player, recording warnings into the shared
+// decoder d. Used directly by callers (draft, transaction) that want the
+// warnings merged into their own container instead of onto the nested Player.
+func convertYahooPlayerWith(d *decoder, yp yahooPlayerData) Player {
 	player := Player{
 		PlayerKey:             yp.PlayerKey,
 		PlayerID:              yp.PlayerID,
@@ -32,11 +40,6 @@ func convertYahooPlayerToPlayer(yp yahooPlayerData) Player {
 	}
 
 	if yp.PlayerStats != nil {
-		weekNum := 0
-		if yp.PlayerStats.Week != "" {
-			weekNum, _ = strconv.Atoi(yp.PlayerStats.Week)
-		}
-
 		var stats []Stat
 		for _, s := range yp.PlayerStats.Stats.Stat {
 			stats = append(stats, Stat{
@@ -47,26 +50,16 @@ func convertYahooPlayerToPlayer(yp yahooPlayerData) Player {
 
 		player.PlayerStats = &PlayerStats{
 			CoverageType: yp.PlayerStats.CoverageType,
-			Week:         weekNum,
+			Week:         d.atoi("player_stats.week", yp.PlayerStats.Week),
 			Stats:        stats,
 		}
 	}
 
 	if yp.PlayerPoints != nil {
-		weekNum := 0
-		if yp.PlayerPoints.Week != "" {
-			weekNum, _ = strconv.Atoi(yp.PlayerPoints.Week)
-		}
-
-		total := 0.0
-		if yp.PlayerPoints.Total != "" {
-			total, _ = strconv.ParseFloat(yp.PlayerPoints.Total, 64)
-		}
-
 		player.PlayerPoints = &PlayerPoints{
 			CoverageType: yp.PlayerPoints.CoverageType,
-			Week:         weekNum,
-			Total:        total,
+			Week:         d.atoi("player_points.week", yp.PlayerPoints.Week),
+			Total:        d.parseFloat("player_points.total", yp.PlayerPoints.Total),
 		}
 	}
 
@@ -74,19 +67,17 @@ func convertYahooPlayerToPlayer(yp yahooPlayerData) Player {
 }
 
 func convertYahooStandingsTeam(yt yahooStandingsTeamData) StandingsTeam {
-	rank, _ := strconv.Atoi(yt.TeamStandings.Rank)
-	playoffSeed := 0
-	if yt.TeamStandings.PlayoffSeed != "" {
-		playoffSeed, _ = strconv.Atoi(yt.TeamStandings.PlayoffSeed)
-	}
+	var d decoder
+	rank := d.atoi("rank", yt.TeamStandings.Rank)
+	playoffSeed := d.atoi("playoff_seed", yt.TeamStandings.PlayoffSeed)
 
-	wins, _ := strconv.Atoi(yt.TeamStandings.OutcomeTotals.Wins)
-	losses, _ := strconv.Atoi(yt.TeamStandings.OutcomeTotals.Losses)
-	ties, _ := strconv.Atoi(yt.TeamStandings.OutcomeTotals.Ties)
-	percentage, _ := strconv.ParseFloat(yt.TeamStandings.OutcomeTotals.Percentage, 64)
+	wins := d.atoi("outcome_totals.wins", yt.TeamStandings.OutcomeTotals.Wins)
+	losses := d.atoi("outcome_totals.losses", yt.TeamStandings.OutcomeTotals.Losses)
+	ties := d.atoi("outcome_totals.ties", yt.TeamStandings.OutcomeTotals.Ties)
+	percentage := d.parseFloat("outcome_totals.percentage", yt.TeamStandings.OutcomeTotals.Percentage)
 
-	pointsFor, _ := strconv.ParseFloat(yt.TeamStandings.PointsFor, 64)
-	pointsAgainst, _ := strconv.ParseFloat(yt.TeamStandings.PointsAgainst, 64)
+	pointsFor := d.parseFloat("points_for", yt.TeamStandings.PointsFor)
+	pointsAgainst := d.parseFloat("points_against", yt.TeamStandings.PointsAgainst)
 
 	team := StandingsTeam{
 		TeamKey: yt.TeamKey,
@@ -108,10 +99,9 @@ func convertYahooStandingsTeam(yt yahooStandingsTeamData) StandingsTeam {
 	}
 
 	if yt.TeamStandings.Streak != nil {
-		streakVal, _ := strconv.Atoi(yt.TeamStandings.Streak.Value)
 		team.TeamStandings.Streak = &Streak{
 			Type:  yt.TeamStandings.Streak.Type,
-			Value: streakVal,
+			Value: d.atoi("streak.value", yt.TeamStandings.Streak.Value),
 		}
 	}
 
@@ -131,17 +121,18 @@ func convertYahooStandingsTeam(yt yahooStandingsTeamData) StandingsTeam {
 		team.ManagerNickname = team.Managers[0].Nickname
 	}
 
+	team.DecodeWarnings = d.warnings
 	return team
 }
 
 func convertYahooMatchup(ym yahooMatchupData) Matchup {
-	weekNum, _ := strconv.Atoi(ym.Week)
+	var d decoder
 	isPlayoffs := ym.IsPlayoffs == "1"
 	isConsolation := ym.IsConsolation == "1"
 	isTied := ym.IsTied == "1"
 
 	matchup := Matchup{
-		Week:          weekNum,
+		Week:          d.atoi("week", ym.Week),
 		WeekStart:     ym.WeekStart,
 		WeekEnd:       ym.WeekEnd,
 		Status:        ym.Status,
@@ -151,10 +142,12 @@ func convertYahooMatchup(ym yahooMatchupData) Matchup {
 		WinnerTeamKey: ym.WinnerTeamKey,
 	}
 
-	for _, t := range ym.Teams.Team {
-		weekNum, _ := strconv.Atoi(t.TeamPoints.Week)
-		points, _ := strconv.ParseFloat(t.TeamPoints.Total, 64)
-		projPoints, _ := strconv.ParseFloat(t.TeamProjectedPoints.Total, 64)
+	for i, t := range ym.Teams.Team {
+		var td decoder
+		prefix := fmt.Sprintf("teams[%d]", i)
+		weekNum := td.atoi("team_points.week", t.TeamPoints.Week)
+		points := td.parseFloat("team_points.total", t.TeamPoints.Total)
+		projPoints := td.parseFloat("team_projected_points.total", t.TeamProjectedPoints.Total)
 
 		team := MatchupTeam{
 			TeamKey: t.TeamKey,
@@ -186,39 +179,35 @@ func convertYahooMatchup(ym yahooMatchupData) Matchup {
 			team.Stats = stats
 		}
 
+		d.merge(prefix, td.warnings)
 		matchup.Teams = append(matchup.Teams, team)
 	}
 
+	matchup.DecodeWarnings = d.warnings
 	return matchup
 }
 
 func convertYahooDraftResult(ydr yahooDraftResultData) DraftResult {
-	pick, _ := strconv.Atoi(ydr.Pick)
-	round, _ := strconv.Atoi(ydr.Round)
-
+	var d decoder
 	return DraftResult{
-		Pick:      pick,
-		Round:     round,
-		TeamKey:   ydr.TeamKey,
-		PlayerKey: ydr.Players.Player.PlayerKey,
-		Player:    convertYahooPlayerToPlayer(ydr.Players.Player),
+		Pick:           d.atoi("pick", ydr.Pick),
+		Round:          d.atoi("round", ydr.Round),
+		TeamKey:        ydr.TeamKey,
+		PlayerKey:      ydr.Players.Player.PlayerKey,
+		Player:         convertYahooPlayerToPlayer(ydr.Players.Player),
+		DecodeWarnings: d.warnings,
 	}
 }
 
 func convertYahooTransaction(yt yahooTransactionData) Transaction {
-	timestamp, _ := strconv.ParseInt(yt.Timestamp, 10, 64)
-	faabBid := 0
-	if yt.FAABBid != "" {
-		faabBid, _ = strconv.Atoi(yt.FAABBid)
-	}
-
+	var d decoder
 	trans := Transaction{
 		TransactionKey: yt.TransactionKey,
 		TransactionID:  yt.TransactionID,
 		Type:           yt.Type,
 		Status:         yt.Status,
-		Timestamp:      timestamp,
-		FAABBid:        faabBid,
+		Timestamp:      d.parseInt64("timestamp", yt.Timestamp),
+		FAABBid:        d.atoi("faab_bid", yt.FAABBid),
 	}
 
 	for _, p := range yt.Players {
@@ -244,5 +233,6 @@ func convertYahooTransaction(yt yahooTransactionData) Transaction {
 		})
 	}
 
+	trans.DecodeWarnings = d.warnings
 	return trans
 }

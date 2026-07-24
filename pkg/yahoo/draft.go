@@ -7,6 +7,9 @@ type DraftResult struct {
 	TeamName  string `json:"team_name,omitempty"`
 	PlayerKey string `json:"player_key"`
 	Player    Player `json:"player"`
+	// DecodeWarnings lists non-fatal numeric parse failures for this draft
+	// result's own fields (the nested Player carries its own warnings).
+	DecodeWarnings []DecodeWarning `json:"decode_warnings,omitempty"`
 }
 
 type yahooDraftResultsResponse struct {

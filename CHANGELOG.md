@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.0] - 2026-07-24
+
+### Added
+- `DecodeWarning` type and a `DecodeWarnings []DecodeWarning` field on `Player`, `StandingsTeam`, `Matchup`, `DraftResult`, and `Transaction`. When a non-empty numeric value from Yahoo fails to parse, the field falls back to zero (unchanged behavior) **and** a warning is recorded, so callers can distinguish a genuine `0` from malformed or unexpected data.
+
+### Changed
+- Numeric conversion in `converters.go` is centralized through a strict decoder. Empty values are still treated as absent (zero, no warning); only non-empty unparseable values produce a warning. No request fails as a result — warnings are advisory.
+
 ## [1.5.1] - 2026-07-24
 
 ### Fixed

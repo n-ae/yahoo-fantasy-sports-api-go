@@ -11,6 +11,9 @@ type StandingsTeam struct {
 	TeamStandings  TeamStandings  `json:"team_standings"`
 	ManagerNickname string        `json:"manager_nickname,omitempty"`
 	Managers       []Manager      `json:"managers,omitempty"`
+	// DecodeWarnings lists non-fatal numeric parse failures encountered while
+	// converting this standings row.
+	DecodeWarnings []DecodeWarning `json:"decode_warnings,omitempty"`
 }
 
 type TeamStandings struct {

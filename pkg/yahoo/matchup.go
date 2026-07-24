@@ -17,6 +17,9 @@ type Matchup struct {
 	IsTied            bool          `json:"is_tied"`
 	WinnerTeamKey     string        `json:"winner_team_key,omitempty"`
 	Teams             []MatchupTeam `json:"teams"`
+	// DecodeWarnings lists non-fatal numeric parse failures for this matchup,
+	// including warnings bubbled up from its teams.
+	DecodeWarnings    []DecodeWarning `json:"decode_warnings,omitempty"`
 }
 
 type MatchupTeam struct {

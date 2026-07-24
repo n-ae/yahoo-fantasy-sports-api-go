@@ -8,6 +8,9 @@ type Transaction struct {
 	Timestamp      int64                `json:"timestamp"`
 	FAABBid        int                  `json:"faab_bid,omitempty"`
 	Players        []TransactionPlayer  `json:"players"`
+	// DecodeWarnings lists non-fatal numeric parse failures encountered while
+	// converting this transaction.
+	DecodeWarnings []DecodeWarning `json:"decode_warnings,omitempty"`
 }
 
 type TransactionPlayer struct {

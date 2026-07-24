@@ -508,6 +508,24 @@ This SDK provides complete feature parity with the Python `yahoofantasy` package
 - ✅ Game ID mapping for all sports (2001-2025; extend `games.go` for later seasons)
 - ✅ Caching with configurable TTL
 
+## Decode warnings
+
+Yahoo returns all numeric values as strings. When a non-empty value can't be
+parsed, the SDK falls back to the field's zero value **and** records a
+`DecodeWarning` on the enclosing model, so a genuine `0` is distinguishable from
+malformed or unexpected data. Empty values are treated as absent (zero, no
+warning), and no request fails because of a parse issue — warnings are advisory.
+
+`DecodeWarnings` is present on `Player`, `StandingsTeam`, `Matchup`,
+`DraftResult`, and `Transaction`:
+
+```go
+player, _ := client.GetPlayerStats(ctx, leagueKey, playerKey, 0)
+for _, w := range player.DecodeWarnings {
+    log.Printf("yahoo decode warning: %s", w) // e.g. player_points.total: cannot parse "N/A": ...
+}
+```
+
 ## Versioning
 
 This module follows [Semantic Versioning](https://semver.org) within the `v1` line:

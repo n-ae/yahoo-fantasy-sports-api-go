@@ -37,6 +37,9 @@ type Player struct {
 	ImageURL              string                 `json:"image_url,omitempty"`
 	Headshot              map[string]string      `json:"headshot,omitempty"`
 	ByeWeeks              map[string]int         `json:"bye_weeks,omitempty"`
+	// DecodeWarnings lists non-fatal numeric parse failures encountered while
+	// converting this player. Empty when all fields parsed cleanly.
+	DecodeWarnings        []DecodeWarning        `json:"decode_warnings,omitempty"`
 }
 
 type PlayerName struct {
