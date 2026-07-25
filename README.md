@@ -24,7 +24,7 @@ write operations (lineup changes, add/drop, waivers, trades). Supported features
 - ✅ Roster management (active vs bench)
 - ✅ Built-in caching with configurable TTL
 - ✅ Support for all four major sports (NFL, MLB, NBA, NHL)
-- ✅ Game ID mapping for seasons 2001-2025
+- ✅ Game ID mapping (2001–2025 static; newer seasons via `Client.GameKey` discovery)
 
 ## Installation
 
@@ -568,7 +568,7 @@ const (
 **Note:** Stat IDs may vary if your league has custom scoring settings. To find your league's stat IDs:
 
 ```bash
-go run examples/get_player_stats.go <league_key> <player_key> 0
+go run ./examples/get_player_stats <league_key> <player_key> 0
 ```
 
 ### Weekly vs Season Stats
@@ -583,7 +583,7 @@ weekStats, _ := client.GetPlayerStats(ctx, leagueKey, playerKey, 5)
 
 ### Complete Example
 
-See `examples/get_3pa_data.go` for a complete example of retrieving and working with 3-point attempt data.
+See `examples/get_3pa_data/` for a complete example of retrieving and working with 3-point attempt data.
 
 ## Testing
 
