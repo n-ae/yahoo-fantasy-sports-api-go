@@ -188,7 +188,7 @@ If your league uses custom stat IDs:
 
 ```bash
 # Discover actual stat IDs
-go run examples/get_player_stats.go <league_key> <player_key> 0
+go run ./examples/get_player_stats <league_key> <player_key> 0
 ```
 
 Then use StatHelper:
@@ -242,7 +242,7 @@ Are you using a standard Yahoo league?
 
 ## See Also
 
-- **Complete Example**: `examples/shooting_stats_complete.go`
+- **Complete Example**: `examples/shooting_stats_complete/`
 - **ADR**: `docs/adr/0001-expose-attempt-made-stats.md`
 - **README**: Main documentation with full API reference
 - **Quick Start**: `QUICK_START.md`
